@@ -25,6 +25,8 @@ public class Documento {
     private EstadoDocumento estado;
 
     private LocalDateTime fechaCreacion;
+    private LocalDateTime fechaActualizacion;
+
     private Boolean eliminado = false;
 
     @ManyToOne

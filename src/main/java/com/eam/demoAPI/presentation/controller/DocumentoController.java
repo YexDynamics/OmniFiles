@@ -2,20 +2,32 @@ package com.eam.demoAPI.presentation.controller;
 
 import com.eam.demoAPI.business.dto.DocumentoDTO;
 import com.eam.demoAPI.business.service.DocumentoService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.*;
+import io.swagger.v3.oas.annotations.media.*;
+import io.swagger.v3.oas.annotations.responses.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+/**
+ * Controlador REST para gestión completa de documentos
+ *
+ * ENDPOINTS:
+ * - POST /api/v1/documentos - Crear documento
+ * - GET /api/v1/documentos/{id} - Obtener documento por ID
+ * - GET /api/v1/documentos - Listar / filtrar documentos
+ * - PUT /api/v1/documentos/{id} - Actualizar documento
+ * - DELETE /api/v1/documentos/{id} - Eliminación lógica (soft delete)
+ * - GET /api/v1/documentos/papelera - Ver documentos eliminados
+ * - PUT /api/v1/documentos/papelera/{id}/restaurar - Restaurar documento
+ * - DELETE /api/v1/documentos/papelera/{id} - Eliminación permanente
+ * - GET /api/v1/documentos/{id}/download - Descargar documento
+ * - GET /api/v1/documentos/{id}/historial - Ver historial
+ */
 
 @RestController
 @RequestMapping("/api/v1/documentos")
@@ -28,142 +40,180 @@ public class DocumentoController {
     private final DocumentoService documentoService;
 
     /**
-     * =========================
-     * CREAR DOCUMENTO
-     * =========================
+     * CREATE - Crear documento
      */
     @PostMapping
     @Operation(
             summary = "Crear documento",
-            description = "Crea un nuevo documento e inicia automáticamente su flujo de aprobación"
+            description = "Crea un nuevo documento asociado a un usuario y tipo documental existente"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Documento creado exitosamente",
-                    content = @Content(schema = @Schema(implementation = DocumentoDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Datos inválidos")
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Documento creado exitosamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DocumentoDTO.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+            @ApiResponse(responseCode = "404", description = "Usuario o tipo documental no existe"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
     public ResponseEntity<?> createDocumento(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Datos del documento a crear", required = true)
-            @RequestBody DocumentoDTO dto) {
+            @Parameter(description = "Datos del documento", required = true)
+            @RequestBody DocumentoDTO dto
+    ) {
+        log.info("POST /api/v1/documentos");
 
         try {
             DocumentoDTO created = documentoService.createDocumento(dto);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
 
         } catch (IllegalArgumentException e) {
+            log.warn("Datos inválidos: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
+
+        } catch (RuntimeException e) {
+            log.error("Error creando documento: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno");
         }
     }
 
     /**
-     * =========================
-     * OBTENER POR ID
-     * =========================
+     * READ - Obtener documento por ID
      */
     @GetMapping("/{id}")
     @Operation(
             summary = "Obtener documento por ID",
-            description = "Retorna un documento específico según su identificador"
+            description = "Retorna la información de un documento específico"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Documento encontrado",
-                    content = @Content(schema = @Schema(implementation = DocumentoDTO.class))),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Documento encontrado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DocumentoDTO.class)
+                    )
+            ),
             @ApiResponse(responseCode = "404", description = "Documento no encontrado")
     })
     public ResponseEntity<?> getById(
-            @Parameter(description = "ID del documento", example = "1")
-            @PathVariable Long id) {
+            @Parameter(description = "ID del documento", required = true, example = "1")
+            @PathVariable Long id
+    ) {
+        log.debug("GET /api/v1/documentos/{}", id);
 
         try {
-            return ResponseEntity.ok(documentoService.getDocumentoById(id));
+            DocumentoDTO doc = documentoService.getDocumentoById(id);
+
+            if (Boolean.TRUE.equals(doc.getEliminado())) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Documento no encontrado");
+            }
+
+            return ResponseEntity.ok(doc);
+
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Documento no encontrado");
         }
     }
 
     /**
-     * =========================
-     * LISTAR / FILTRAR
-     * =========================
+     * READ ALL - Listar / filtrar documentos
      */
     @GetMapping
     @Operation(
             summary = "Listar documentos",
-            description = "Permite obtener todos los documentos o filtrarlos por estado y/o usuario"
+            description = "Permite listar documentos y filtrarlos por estado o usuario"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista de documentos"),
-            @ApiResponse(responseCode = "204", description = "No hay documentos")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida"),
+            @ApiResponse(responseCode = "204", description = "Sin resultados"),
+            @ApiResponse(responseCode = "400", description = "Parámetros inválidos"),
+            @ApiResponse(responseCode = "500", description = "Error interno")
     })
     public ResponseEntity<?> getAll(
-            @Parameter(description = "Estado del documento (opcional)", example = "APROBADO")
+            @Parameter(description = "Estado del documento", example = "ACTIVO")
             @RequestParam(required = false) String estado,
 
-            @Parameter(description = "ID del usuario creador (opcional)", example = "2")
+            @Parameter(description = "ID del usuario", example = "1")
             @RequestParam(required = false) Long usuarioId
     ) {
+        try {
+            List<DocumentoDTO> docs = documentoService.getDocumentosFiltrados(estado, usuarioId);
 
-        List<DocumentoDTO> docs = documentoService.getDocumentosFiltrados(estado, usuarioId);
+            if (docs.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
 
-        if (docs.isEmpty()) {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(docs);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Parámetros inválidos");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno");
         }
-
-        return ResponseEntity.ok(docs);
     }
 
     /**
-     * =========================
-     * ACTUALIZAR
-     * =========================
+     * UPDATE - Actualizar documento
      */
     @PutMapping("/{id}")
     @Operation(
             summary = "Actualizar documento",
-            description = "Actualiza un documento existente. Se validan permisos del usuario"
+            description = "Actualiza un documento existente. Los campos null pueden ser ignorados según lógica de negocio"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Documento actualizado",
-                    content = @Content(schema = @Schema(implementation = DocumentoDTO.class))),
+            @ApiResponse(responseCode = "200", description = "Documento actualizado"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
             @ApiResponse(responseCode = "403", description = "Sin permisos"),
-            @ApiResponse(responseCode = "404", description = "Documento no encontrado")
+            @ApiResponse(responseCode = "404", description = "Documento no encontrado"),
+            @ApiResponse(responseCode = "500", description = "Error interno")
     })
     public ResponseEntity<?> update(
-            @Parameter(description = "ID del documento", example = "1")
+            @Parameter(description = "ID del documento", required = true)
             @PathVariable Long id,
-            @RequestBody DocumentoDTO dto) {
 
+            @Parameter(description = "Datos a actualizar", required = true)
+            @RequestBody DocumentoDTO dto
+    ) {
         try {
             return ResponseEntity.ok(documentoService.updateDocumento(id, dto));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
 
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Sin permisos");
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Documento no encontrado");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno");
         }
     }
 
     /**
-     * =========================
-     * ELIMINAR (SOFT DELETE)
-     * =========================
+     * DELETE - Eliminación lógica
      */
     @DeleteMapping("/{id}")
     @Operation(
-            summary = "Eliminar documento",
-            description = "Realiza un eliminado lógico del documento (envía a papelera)"
+            summary = "Eliminar documento (soft delete)",
+            description = "Marca el documento como eliminado sin borrarlo físicamente"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Documento eliminado"),
             @ApiResponse(responseCode = "403", description = "Sin permisos"),
-            @ApiResponse(responseCode = "404", description = "Documento no encontrado")
+            @ApiResponse(responseCode = "404", description = "Documento no encontrado"),
+            @ApiResponse(responseCode = "500", description = "Error interno")
     })
     public ResponseEntity<?> delete(
-            @Parameter(description = "ID del documento", example = "1")
-            @PathVariable Long id) {
-
+            @Parameter(description = "ID del documento", required = true)
+            @PathVariable Long id
+    ) {
         try {
             documentoService.softDeleteDocumento(id);
             return ResponseEntity.noContent().build();
@@ -173,19 +223,17 @@ public class DocumentoController {
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Documento no encontrado");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno");
         }
     }
 
     /**
-     * =========================
-     * PAPELERA
-     * =========================
+     * PAPELERA - Listar eliminados
      */
     @GetMapping("/papelera")
-    @Operation(
-            summary = "Ver papelera",
-            description = "Obtiene todos los documentos eliminados (soft delete)"
-    )
+    @Operation(summary = "Ver papelera", description = "Lista documentos eliminados (soft delete)")
     public ResponseEntity<?> getPapelera() {
 
         List<DocumentoDTO> docs = documentoService.getDocumentosEliminados();
@@ -197,15 +245,15 @@ public class DocumentoController {
         return ResponseEntity.ok(docs);
     }
 
+    /**
+     * RESTORE - Restaurar documento
+     */
     @PutMapping("/papelera/{id}/restaurar")
-    @Operation(
-            summary = "Restaurar documento",
-            description = "Restaura un documento eliminado desde la papelera"
-    )
+    @Operation(summary = "Restaurar documento", description = "Restaura un documento eliminado")
     public ResponseEntity<?> restore(
-            @Parameter(description = "ID del documento", example = "1")
-            @PathVariable Long id) {
-
+            @Parameter(description = "ID del documento")
+            @PathVariable Long id
+    ) {
         try {
             documentoService.restoreDocumento(id);
             return ResponseEntity.ok("Documento restaurado");
@@ -215,15 +263,15 @@ public class DocumentoController {
         }
     }
 
+    /**
+     * DELETE PERMANENTE
+     */
     @DeleteMapping("/papelera/{id}")
-    @Operation(
-            summary = "Eliminar permanentemente",
-            description = "Elimina un documento de forma permanente desde la papelera"
-    )
+    @Operation(summary = "Eliminar permanentemente", description = "Elimina el documento definitivamente")
     public ResponseEntity<?> deletePermanent(
-            @Parameter(description = "ID del documento", example = "1")
-            @PathVariable Long id) {
-
+            @Parameter(description = "ID del documento")
+            @PathVariable Long id
+    ) {
         try {
             documentoService.deletePermanent(id);
             return ResponseEntity.noContent().build();
@@ -234,22 +282,21 @@ public class DocumentoController {
     }
 
     /**
-     * =========================
-     * DESCARGAR
-     * =========================
+     * DOWNLOAD - Descargar documento
      */
     @GetMapping("/{id}/download")
-    @Operation(
-            summary = "Descargar documento",
-            description = "Descarga el archivo asociado al documento"
-    )
+    @Operation(summary = "Descargar documento")
     public ResponseEntity<?> download(
-            @Parameter(description = "ID del documento", example = "1")
-            @PathVariable Long id) {
-
+            @Parameter(description = "ID del documento")
+            @PathVariable Long id
+    ) {
         try {
             byte[] file = documentoService.downloadDocumento(id);
-            return ResponseEntity.ok(file);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=documento")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(file);
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Documento no encontrado");
@@ -257,21 +304,22 @@ public class DocumentoController {
     }
 
     /**
-     * =========================
      * HISTORIAL
-     * =========================
      */
     @GetMapping("/{id}/historial")
-    @Operation(
-            summary = "Historial del documento",
-            description = "Obtiene la trazabilidad completa del documento (cambios de estado, acciones, etc.)"
-    )
+    @Operation(summary = "Historial del documento")
     public ResponseEntity<?> historial(
-            @Parameter(description = "ID del documento", example = "1")
-            @PathVariable Long id) {
-
+            @Parameter(description = "ID del documento")
+            @PathVariable Long id
+    ) {
         try {
-            return ResponseEntity.ok(documentoService.getHistorial(id));
+            List<?> historial = documentoService.getHistorial(id);
+
+            if (historial.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+
+            return ResponseEntity.ok(historial);
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Documento no encontrado");

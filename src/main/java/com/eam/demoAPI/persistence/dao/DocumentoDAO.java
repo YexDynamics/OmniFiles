@@ -2,6 +2,7 @@ package com.eam.demoAPI.persistence.dao;
 
 import com.eam.demoAPI.business.dto.DocumentoDTO;
 import com.eam.demoAPI.persistence.entity.Documento;
+import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
 import com.eam.demoAPI.persistence.mapper.DocumentoMapper;
 import com.eam.demoAPI.persistence.repository.DocumentoRepository;
 
@@ -34,9 +35,14 @@ public class DocumentoDAO {
                 .map(documentoMapper::toDTO);
     }
 
-    // READ ALL
+    // READ ALL → solo activos
     public List<DocumentoDTO> findAll() {
-        return documentoMapper.toDTOList(documentoRepository.findAll());
+        return documentoMapper.toDTOList(
+                documentoRepository.findAll()
+                        .stream()
+                        .filter(doc -> !Boolean.TRUE.equals(doc.getEliminado()))
+                        .toList()
+        );
     }
 
     // UPDATE
@@ -49,27 +55,36 @@ public class DocumentoDAO {
                 });
     }
 
-    // FILTROS
+    // FILTROS (también deben respetar eliminado)
 
-    public List<DocumentoDTO> findByEstado(String estado) {
+    public List<DocumentoDTO> findByEstado(EstadoDocumento estado) {
         return documentoMapper.toDTOList(
                 documentoRepository.findByEstado(estado)
+                        .stream()
+                        .filter(doc -> !Boolean.TRUE.equals(doc.getEliminado()))
+                        .toList()
         );
     }
 
     public List<DocumentoDTO> findByUsuario(Long usuarioId) {
         return documentoMapper.toDTOList(
                 documentoRepository.findByUsuarioId(usuarioId)
+                        .stream()
+                        .filter(doc -> !Boolean.TRUE.equals(doc.getEliminado()))
+                        .toList()
         );
     }
 
-    public List<DocumentoDTO> findByEstadoAndUsuario(String estado, Long usuarioId) {
+    public List<DocumentoDTO> findByEstadoAndUsuario(EstadoDocumento estado, Long usuarioId) {
         return documentoMapper.toDTOList(
                 documentoRepository.findByEstadoAndUsuarioId(estado, usuarioId)
+                        .stream()
+                        .filter(doc -> !Boolean.TRUE.equals(doc.getEliminado()))
+                        .toList()
         );
     }
 
-    // PAPELERA
+    // PAPELERA → solo eliminados
     public List<DocumentoDTO> findEliminados() {
         return documentoMapper.toDTOList(
                 documentoRepository.findByEliminadoTrue()
@@ -81,6 +96,10 @@ public class DocumentoDAO {
 
         Documento doc = documentoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Documento no encontrado"));
+
+        if (Boolean.TRUE.equals(doc.getEliminado())) {
+            throw new RuntimeException("El documento está en papelera");
+        }
 
         if (doc.getRutaArchivo() == null || doc.getRutaArchivo().isEmpty()) {
             throw new RuntimeException("El documento no tiene ruta de archivo");
@@ -99,7 +118,7 @@ public class DocumentoDAO {
         }
     }
 
-    // DELETE raal (no usar)
+    // DELETE real
     public boolean delete(Long id) {
         if (documentoRepository.existsById(id)) {
             documentoRepository.deleteById(id);

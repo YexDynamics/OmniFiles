@@ -35,6 +35,8 @@ public class DocumentoServiceImpl implements DocumentoService {
         validateDocumento(dto);
 
         dto.setEstado(EstadoDocumento.CREADO);
+        dto.setEliminado(false); // ✅ aseguramos que nazca activo
+        dto.setCreatedAt(LocalDateTime.now());
 
         DocumentoDTO result = documentoDAO.save(dto);
 
@@ -54,19 +56,29 @@ public class DocumentoServiceImpl implements DocumentoService {
     @Transactional(readOnly = true)
     public List<DocumentoDTO> getDocumentosFiltrados(String estado, Long usuarioId) {
 
-        if (estado != null && usuarioId != null) {
-            return documentoDAO.findByEstadoAndUsuario(estado, usuarioId);
-        }
+        EstadoDocumento estadoEnum = null;
 
         if (estado != null) {
-            return documentoDAO.findByEstado(estado);
+            estadoEnum = EstadoDocumento.valueOf(estado);
+        }
+
+        if (estadoEnum != null && usuarioId != null) {
+            return documentoDAO.findByEstadoAndUsuario(estadoEnum, usuarioId)
+                    .stream().filter(doc -> !doc.getEliminado()).toList(); // ✅ excluye eliminados
+        }
+
+        if (estadoEnum != null) {
+            return documentoDAO.findByEstado(estadoEnum)
+                    .stream().filter(doc -> !doc.getEliminado()).toList();
         }
 
         if (usuarioId != null) {
-            return documentoDAO.findByUsuario(usuarioId);
+            return documentoDAO.findByUsuario(usuarioId)
+                    .stream().filter(doc -> !doc.getEliminado()).toList();
         }
 
-        return documentoDAO.findAll();
+        return documentoDAO.findAll()
+                .stream().filter(doc -> !doc.getEliminado()).toList();
     }
 
     @Override
@@ -76,15 +88,19 @@ public class DocumentoServiceImpl implements DocumentoService {
 
         DocumentoDTO existente = getDocumentoById(id);
 
-        // validar usuario si cambia
+        if (Boolean.TRUE.equals(existente.getEliminado())) {
+            throw new RuntimeException("No se puede modificar un documento en papelera"); // ✅ regla
+        }
+
         if (dto.getUsuarioId() != null) {
             validateUsuario(dto.getUsuarioId());
         }
 
+        dto.setUpdatedAt(LocalDateTime.now());
+
         DocumentoDTO actualizado = documentoDAO.update(id, dto)
                 .orElseThrow(() -> new RuntimeException("Error al actualizar"));
 
-        // historial SOLO si cambia estado
         if (dto.getEstado() != null &&
                 !dto.getEstado().equals(existente.getEstado())) {
 
@@ -99,7 +115,12 @@ public class DocumentoServiceImpl implements DocumentoService {
 
         DocumentoDTO doc = getDocumentoById(id);
 
+        if (Boolean.TRUE.equals(doc.getEliminado())) {
+            return; // ya está eliminado
+        }
+
         doc.setEliminado(true);
+        doc.setUpdatedAt(LocalDateTime.now());
 
         documentoDAO.update(id, doc);
     }
@@ -114,7 +135,12 @@ public class DocumentoServiceImpl implements DocumentoService {
 
         DocumentoDTO doc = getDocumentoById(id);
 
+        if (!Boolean.TRUE.equals(doc.getEliminado())) {
+            return; // no está eliminado
+        }
+
         doc.setEliminado(false);
+        doc.setUpdatedAt(LocalDateTime.now());
 
         documentoDAO.update(id, doc);
     }
@@ -134,6 +160,10 @@ public class DocumentoServiceImpl implements DocumentoService {
 
         DocumentoDTO doc = getDocumentoById(id);
 
+        if (Boolean.TRUE.equals(doc.getEliminado())) {
+            throw new RuntimeException("No se puede descargar un documento en papelera");
+        }
+
         return documentoDAO.getFile(doc.getId());
     }
 
@@ -141,12 +171,6 @@ public class DocumentoServiceImpl implements DocumentoService {
     public List<HistorialDocumentoDTO> getHistorial(Long documentoId) {
         return historialDAO.findByDocumentoId(documentoId);
     }
-
-    /**
-     * =========================
-     * HELPERS
-     * =========================
-     */
 
     private void validateDocumento(DocumentoDTO dto) {
 

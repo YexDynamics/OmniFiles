@@ -25,7 +25,7 @@ public class DocumentoDTO {
     private Long usuarioId;
 
     @Schema(description = "Indica si el documento está en papelera", example = "false")
-    private Boolean eliminado;
+    private Boolean eliminado = false;
 
     @Schema(description = "Fecha de creación", example = "2025-09-07T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime createdAt;
