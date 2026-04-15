@@ -24,6 +24,7 @@ public interface HistorialDocumentoMapper {
     @Mapping(target = "documento", source = "documentoId", qualifiedByName = "idToDocumento")
     @Mapping(target = "usuario", source = "usuarioId", qualifiedByName = "idToUsuario")
     @Mapping(target = "estado", ignore = true)
+    @Mapping(target = "accion", ignore = true)
     @Mapping(target = "fechaCambio", ignore = true)
     HistorialDocumento toEntity(HistorialDocumentoDTO dto);
 

@@ -10,7 +10,7 @@ public interface UsuarioService {
 
     UsuarioDTO getUsuarioById(Long id);
 
-    List<UsuarioDTO> getUsuarios(Long organizacionId);
+    List<UsuarioDTO> getUsuarios();
 
     UsuarioDTO updateUsuario(Long id, UsuarioDTO usuarioDTO);
 

@@ -19,7 +19,7 @@ public class Usuario {
     private String nombre;
 
     @Column(unique = true, nullable = false)
-    private String correo;
+    private String email;
 
     private String contrasena;
 

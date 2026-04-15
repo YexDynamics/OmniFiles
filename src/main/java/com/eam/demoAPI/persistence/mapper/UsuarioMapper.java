@@ -24,6 +24,7 @@ public interface UsuarioMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "rol", source = "rolId", qualifiedByName = "idToRol")
     @Mapping(target = "estado", source = "activo")
+    @Mapping(target = "documentos", ignore = true)
     Usuario toEntity(UsuarioDTO dto);
 
     // UPDATE
@@ -31,6 +32,7 @@ public interface UsuarioMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "rol", ignore = true)
     @Mapping(target = "estado", source = "activo")
+    @Mapping(target = "documentos", ignore = true)
     void updateEntityFromDTO(UsuarioDTO dto, @MappingTarget Usuario entity);
 
     @Named("idToRol")

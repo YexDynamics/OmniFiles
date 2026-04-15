@@ -24,6 +24,9 @@ public class DocumentoDTO {
     @Schema(description = "ID del usuario responsable", example = "1", required = true)
     private Long usuarioId;
 
+    @Schema(description = "ID del tipo de documento", example = "2")
+    private Long tipoDocumentoId;
+
     @Schema(description = "Indica si el documento está en papelera", example = "false")
     private Boolean eliminado = false;
 

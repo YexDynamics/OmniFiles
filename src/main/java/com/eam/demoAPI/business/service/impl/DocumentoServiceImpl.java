@@ -2,15 +2,19 @@ package com.eam.demoAPI.business.service.impl;
 
 import com.eam.demoAPI.business.dto.DocumentoDTO;
 import com.eam.demoAPI.business.dto.HistorialDocumentoDTO;
+import com.eam.demoAPI.business.dto.UsuarioDTO;
 import com.eam.demoAPI.business.service.DocumentoService;
 import com.eam.demoAPI.persistence.dao.DocumentoDAO;
 import com.eam.demoAPI.persistence.dao.HistorialDocumentoDAO;
 import com.eam.demoAPI.persistence.dao.UsuarioDAO;
 import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
+import com.eam.demoAPI.persistence.entity.enums.TipoAccion;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +44,7 @@ public class DocumentoServiceImpl implements DocumentoService {
 
         DocumentoDTO result = documentoDAO.save(dto);
 
-        saveHistorial(result);
+        registrarAccion(result, TipoAccion.CREACION);
 
         return result;
     }
@@ -59,7 +63,11 @@ public class DocumentoServiceImpl implements DocumentoService {
         EstadoDocumento estadoEnum = null;
 
         if (estado != null) {
-            estadoEnum = EstadoDocumento.valueOf(estado);
+            try {
+                estadoEnum = EstadoDocumento.valueOf(estado.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Estado inválido");
+            }
         }
 
         if (estadoEnum != null && usuarioId != null) {
@@ -104,7 +112,9 @@ public class DocumentoServiceImpl implements DocumentoService {
         if (dto.getEstado() != null &&
                 !dto.getEstado().equals(existente.getEstado())) {
 
-            saveHistorial(actualizado);
+            registrarAccion(actualizado, TipoAccion.CAMBIO_ESTADO);
+        } else {
+            registrarAccion(actualizado, TipoAccion.ACTUALIZACION);
         }
 
         return actualizado;
@@ -116,13 +126,15 @@ public class DocumentoServiceImpl implements DocumentoService {
         DocumentoDTO doc = getDocumentoById(id);
 
         if (Boolean.TRUE.equals(doc.getEliminado())) {
-            return; // ya está eliminado
+            return;
         }
 
         doc.setEliminado(true);
         doc.setUpdatedAt(LocalDateTime.now());
 
         documentoDAO.update(id, doc);
+
+        registrarAccion(doc, TipoAccion.ELIMINACION);
     }
 
     @Override
@@ -136,23 +148,29 @@ public class DocumentoServiceImpl implements DocumentoService {
         DocumentoDTO doc = getDocumentoById(id);
 
         if (!Boolean.TRUE.equals(doc.getEliminado())) {
-            return; // no está eliminado
+            return;
         }
 
         doc.setEliminado(false);
         doc.setUpdatedAt(LocalDateTime.now());
 
         documentoDAO.update(id, doc);
+
+        registrarAccion(doc, TipoAccion.RESTAURACION);
     }
 
     @Override
     public void deletePermanent(Long id) {
+
+        DocumentoDTO doc = getDocumentoById(id);
 
         boolean deleted = documentoDAO.delete(id);
 
         if (!deleted) {
             throw new RuntimeException("Documento no encontrado");
         }
+
+        registrarAccion(doc, TipoAccion.ELIMINACION);
     }
 
     @Override
@@ -194,12 +212,29 @@ public class DocumentoServiceImpl implements DocumentoService {
         }
     }
 
-    private void saveHistorial(DocumentoDTO doc) {
+    private Long getUsuarioActualId() {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Usuario no autenticado");
+        }
+
+        String correo = auth.getName();
+
+        UsuarioDTO usuario = usuarioDAO.findByEmail(correo)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        return usuario.getId();
+    }
+
+    private void registrarAccion(DocumentoDTO doc, TipoAccion accion) {
 
         HistorialDocumentoDTO historial = new HistorialDocumentoDTO();
         historial.setDocumentoId(doc.getId());
-        historial.setUsuarioId(doc.getUsuarioId());
+        historial.setUsuarioId(getUsuarioActualId());
         historial.setEstado(doc.getEstado());
+        historial.setAccion(accion);
         historial.setFechaCambio(LocalDateTime.now());
 
         historialDAO.save(historial);

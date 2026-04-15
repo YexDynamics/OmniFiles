@@ -45,12 +45,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<UsuarioDTO> getUsuarios(Long organizacionId) {
-
-        if (organizacionId != null) {
-            return usuarioDAO.findByOrganizacionId(organizacionId);
-        }
-
+    public List<UsuarioDTO> getUsuarios() {
         return usuarioDAO.findAll();
     }
 
@@ -91,9 +86,6 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuarioDAO.update(id, usuario);
     }
 
-    /**
-     * VALIDACIONES BASE
-     */
     private void validateUsuario(UsuarioDTO dto) {
 
         if (dto.getNombre() == null || dto.getNombre().trim().isEmpty()) {
@@ -106,10 +98,6 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         if (dto.getRolId() == null) {
             throw new IllegalArgumentException("El rol es obligatorio");
-        }
-
-        if (dto.getOrganizacionId() == null) {
-            throw new IllegalArgumentException("La organización es obligatoria");
         }
     }
 }

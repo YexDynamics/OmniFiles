@@ -32,7 +32,7 @@ import java.util.List;
 @RequestMapping("/api/v1/usuarios")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Usuarios", description = "Gestión de usuarios dentro de organizaciones")
+@Tag(name = "Usuarios", description = "Gestión de usuarios")
 @CrossOrigin(origins = "*")
 public class UsuarioController {
 
@@ -44,7 +44,7 @@ public class UsuarioController {
     @PostMapping
     @Operation(
             summary = "Crear usuario",
-            description = "Crea un nuevo usuario dentro de una organización existente"
+            description = "Crea un nuevo usuario"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -55,7 +55,7 @@ public class UsuarioController {
                             schema = @Schema(implementation = UsuarioDTO.class)
                     )
             ),
-            @ApiResponse(responseCode = "400", description = "Datos inválidos o organización no válida"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
             @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
     public ResponseEntity<?> create(
@@ -121,21 +121,18 @@ public class UsuarioController {
     @GetMapping
     @Operation(
             summary = "Listar usuarios",
-            description = "Obtiene todos los usuarios o filtra por organización"
+            description = "Obtiene todos los usuarios"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de usuarios"),
             @ApiResponse(responseCode = "204", description = "No hay usuarios"),
             @ApiResponse(responseCode = "500", description = "Error interno")
     })
-    public ResponseEntity<?> getAll(
-            @Parameter(description = "ID de la organización (opcional)", example = "1")
-            @RequestParam(required = false) Long organizacionId
-    ) {
+    public ResponseEntity<?> getAll() {
         log.debug("GET /api/v1/usuarios");
 
         try {
-            List<UsuarioDTO> usuarios = usuarioService.getUsuarios(organizacionId);
+            List<UsuarioDTO> usuarios = usuarioService.getUsuarios();
 
             if (usuarios.isEmpty()) {
                 return ResponseEntity.noContent().build();

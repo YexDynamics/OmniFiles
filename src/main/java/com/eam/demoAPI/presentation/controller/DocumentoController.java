@@ -134,7 +134,7 @@ public class DocumentoController {
             @ApiResponse(responseCode = "500", description = "Error interno")
     })
     public ResponseEntity<?> getAll(
-            @Parameter(description = "Estado del documento", example = "ACTIVO")
+            @Parameter(description = "Estado del documento", example = "CREADO")
             @RequestParam(required = false) String estado,
 
             @Parameter(description = "ID del usuario", example = "1")

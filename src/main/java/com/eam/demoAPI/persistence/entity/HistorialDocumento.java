@@ -1,5 +1,7 @@
 package com.eam.demoAPI.persistence.entity;
 
+import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
+import com.eam.demoAPI.persistence.entity.enums.TipoAccion;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,11 +18,13 @@ public class HistorialDocumento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String accion;
+    @Enumerated(EnumType.STRING)
+    private EstadoDocumento estado;
 
-    private String estadoResultante;
+    @Enumerated(EnumType.STRING)
+    private TipoAccion accion;
 
-    private LocalDateTime fecha;
+    private LocalDateTime fechaCambio;
 
     @ManyToOne
     @JoinColumn(name = "documento_id")

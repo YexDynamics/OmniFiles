@@ -25,10 +25,12 @@ public class UsuarioDAO {
 
         Usuario entity = usuarioMapper.toEntity(dto);
 
-        Rol rol = rolRepository.findById(dto.getRolId())
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+        if (dto.getRolId() != null) {
+            Rol rol = rolRepository.findById(dto.getRolId())
+                    .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+            entity.setRol(rol);
+        }
 
-        entity.setRol(rol);
         entity.setEstado(true);
 
         Usuario saved = usuarioRepository.save(entity);
@@ -45,10 +47,9 @@ public class UsuarioDAO {
         return usuarioMapper.toDTOList(usuarioRepository.findAll());
     }
 
-    public List<UsuarioDTO> findByOrganizacionId(Long organizacionId) {
-        return usuarioMapper.toDTOList(
-                usuarioRepository.findByOrganizacionId(organizacionId)
-        );
+    public Optional<UsuarioDTO> findByEmail(String email) {
+        return usuarioRepository.findByEmail(email)
+                .map(usuarioMapper::toDTO);
     }
 
     public boolean existsByEmail(String email) {
@@ -72,7 +73,6 @@ public class UsuarioDAO {
                 });
     }
 
-    // pero NO usar codigo viejo
     public boolean delete(Long id) {
         if (usuarioRepository.existsById(id)) {
             usuarioRepository.deleteById(id);

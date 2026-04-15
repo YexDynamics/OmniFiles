@@ -1,5 +1,8 @@
 package com.eam.demoAPI.persistence.entity.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum EstadoDocumento {
     CREADO("Creado"),
     EN_REVISION("En Revisión"),
@@ -12,7 +15,4 @@ public enum EstadoDocumento {
         this.nombreBonito = nombreBonito;
     }
 
-    public String getNombreBonito() {
-        return nombreBonito;
-    }
 }
