@@ -2,6 +2,12 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
+	//Genera pruebas de cobvertura
+	id 'jacoco'
+	//plugin sonarQube
+	//id "org.sonarqube" version "4.4.1.3373"
+	//plugin allure reports
+	id "io.qameta.allure" version "3.0.2"
 }
 
 group = 'com.eam'
@@ -37,6 +43,7 @@ dependencies {
 
 	// https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12")
+	testImplementation 'io.qameta.allure:allure-junit5:2.34.0'
 
 	// MapStruct para mapeo automático
 	implementation 'org.mapstruct:mapstruct:1.6.3'
@@ -47,4 +54,36 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	//tras los test se generan los reportes con JaCoCO + Allure
+	//finalizedBy jacocoTestReport, allureReport
+}
+
+jacoco{
+	toolVersion = "0.8.10"
+}
+jacocoTestReport{
+	dependsOn test
+	reports{
+		xml.required = true
+		html.required = true
+	}
+	finalizedBy jacocoTestCoverageVerification
+}
+
+jacocoTestCoverageVerification{
+	violationRules{
+		rule{
+			limit{
+				//cambiar a que exia al menos el 80%
+				minimum = 0.30
+			}
+		}
+	}
+}
+
+allure{
+	version = "2.34.0"
+	autoconfigure = true
+	aspectjweaver = true
 }

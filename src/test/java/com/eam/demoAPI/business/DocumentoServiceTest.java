@@ -187,7 +187,7 @@ public class DocumentoServiceTest {
     @DisplayName("PAPELERA - Retorna documentos eliminados")
     void getEliminados_ok() {
 
-        validDocumento.setEliminado(true); // ✅ coherente con papelera
+        validDocumento.setEliminado(true);
 
         when(documentoDAO.findEliminados())
                 .thenReturn(List.of(validDocumento));

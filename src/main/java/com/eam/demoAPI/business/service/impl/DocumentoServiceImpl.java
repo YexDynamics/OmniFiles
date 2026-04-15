@@ -35,7 +35,7 @@ public class DocumentoServiceImpl implements DocumentoService {
         validateDocumento(dto);
 
         dto.setEstado(EstadoDocumento.CREADO);
-        dto.setEliminado(false); // ✅ aseguramos que nazca activo
+        dto.setEliminado(false);
         dto.setCreatedAt(LocalDateTime.now());
 
         DocumentoDTO result = documentoDAO.save(dto);
@@ -64,7 +64,7 @@ public class DocumentoServiceImpl implements DocumentoService {
 
         if (estadoEnum != null && usuarioId != null) {
             return documentoDAO.findByEstadoAndUsuario(estadoEnum, usuarioId)
-                    .stream().filter(doc -> !doc.getEliminado()).toList(); // ✅ excluye eliminados
+                    .stream().filter(doc -> !doc.getEliminado()).toList();
         }
 
         if (estadoEnum != null) {
@@ -89,7 +89,7 @@ public class DocumentoServiceImpl implements DocumentoService {
         DocumentoDTO existente = getDocumentoById(id);
 
         if (Boolean.TRUE.equals(existente.getEliminado())) {
-            throw new RuntimeException("No se puede modificar un documento en papelera"); // ✅ regla
+            throw new RuntimeException("No se puede modificar un documento en papelera");
         }
 
         if (dto.getUsuarioId() != null) {
