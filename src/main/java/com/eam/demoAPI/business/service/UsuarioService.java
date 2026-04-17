@@ -15,4 +15,6 @@ public interface UsuarioService {
     UsuarioDTO updateUsuario(Long id, UsuarioDTO usuarioDTO);
 
     void cambiarEstado(Long id, boolean activo);
+
+    void deleteUsuario(Long id);
 }

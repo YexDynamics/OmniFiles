@@ -86,6 +86,22 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuarioDAO.update(id, usuario);
     }
 
+    @Override
+    public void deleteUsuario(Long id) {
+
+        log.info("Eliminando usuario ID: {}", id);
+
+        // Verificamos que existe antes de borrar
+        usuarioDAO.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
+
+        boolean deleted = usuarioDAO.delete(id);
+
+        if (!deleted) {
+            throw new RuntimeException("No se pudo eliminar el usuario");
+        }
+    }
+
     private void validateUsuario(UsuarioDTO dto) {
 
         if (dto.getNombre() == null || dto.getNombre().trim().isEmpty()) {

@@ -1,6 +1,7 @@
 package com.eam.demoAPI.business;
 
 import com.eam.demoAPI.business.dto.DocumentoDTO;
+import com.eam.demoAPI.business.dto.UsuarioDTO;
 import com.eam.demoAPI.business.service.impl.DocumentoServiceImpl;
 import com.eam.demoAPI.persistence.dao.DocumentoDAO;
 import com.eam.demoAPI.persistence.dao.HistorialDocumentoDAO;
@@ -15,6 +16,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +31,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DocumentoService - Unit Tests")
 public class DocumentoServiceTest {
@@ -54,16 +62,35 @@ public class DocumentoServiceTest {
         validDocumento.setEstado(EstadoDocumento.CREADO);
         validDocumento.setEliminado(false);
         validDocumento.setCreatedAt(LocalDateTime.now());
+
+        // Mock del SecurityContext para que registrarAccion() no falle
+        // en los tests unitarios (no tienen contexto de Spring Security)
+        UsuarioDTO usuarioActual = new UsuarioDTO();
+        usuarioActual.setId(1L);
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("test@test.com");
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(usuarioDAO.findByEmail("test@test.com"))
+                .thenReturn(Optional.of(usuarioActual));
     }
 
-    //  CREATE
+    // CREATE
 
     @Test
     @DisplayName("CREATE - Documento válido debe crearse")
     void createDocumento_valid_shouldReturnCreated() {
 
+        UsuarioDTO usuario = new UsuarioDTO();
+        usuario.setId(1L);
+
         when(usuarioDAO.findById(anyLong()))
-                .thenReturn(Optional.ofNullable(null));
+                .thenReturn(Optional.of(usuario));
 
         when(documentoDAO.save(any(DocumentoDTO.class)))
                 .thenReturn(validDocumento);
@@ -73,6 +100,7 @@ public class DocumentoServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getNombre()).isEqualTo("Documento Test");
 
+        verify(usuarioDAO, times(1)).findById(anyLong());
         verify(documentoDAO, times(1)).save(any(DocumentoDTO.class));
     }
 
@@ -88,7 +116,21 @@ public class DocumentoServiceTest {
         verify(documentoDAO, never()).save(any());
     }
 
-    //READ
+    @Test
+    @DisplayName("CREATE - Usuario no existe debe lanzar excepción")
+    void createDocumento_userNotFound_shouldThrow() {
+
+        when(usuarioDAO.findById(anyLong()))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> documentoService.createDocumento(validDocumento))
+                .isInstanceOf(RuntimeException.class);
+
+        verify(usuarioDAO, times(1)).findById(anyLong());
+        verify(documentoDAO, never()).save(any());
+    }
+
+    // READ
 
     @Test
     @DisplayName("GET BY ID - Documento existe")
@@ -134,7 +176,24 @@ public class DocumentoServiceTest {
         verify(documentoDAO, times(1)).findAll();
     }
 
-    // UPDATE
+    @Test
+    @DisplayName("FILTER - Filtrar por usuarioId")
+    void getDocumentosFiltrados_usuario() {
+
+        // El servicio llama findByUsuario() cuando usuarioId != null
+        when(documentoDAO.findByUsuario(1L))
+                .thenReturn(List.of(validDocumento));
+
+        List<DocumentoDTO> result = documentoService.getDocumentosFiltrados(null, 1L);
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).allMatch(doc -> doc.getUsuarioId().equals(1L));
+
+        verify(documentoDAO, times(1)).findByUsuario(1L);
+    }
+
+    //UPDATE
+
     @Test
     @DisplayName("UPDATE - Documento actualizado correctamente")
     void updateDocumento_ok() {
@@ -166,7 +225,7 @@ public class DocumentoServiceTest {
                 .isInstanceOf(RuntimeException.class);
     }
 
-    //  DELETE (SOFT)
+    //SOFT DELETE
 
     @Test
     @DisplayName("SOFT DELETE - Documento eliminado lógicamente")
@@ -178,11 +237,14 @@ public class DocumentoServiceTest {
         when(documentoDAO.update(eq(validId), any()))
                 .thenReturn(Optional.of(validDocumento));
 
-        assertThatCode(() -> documentoService.softDeleteDocumento(validId))
-                .doesNotThrowAnyException();
+        documentoService.softDeleteDocumento(validId);
+
+        verify(documentoDAO).update(eq(validId),
+                argThat(doc -> doc.getEliminado()));
     }
 
-    // PAPELERA
+    //PAPELERA
+
     @Test
     @DisplayName("PAPELERA - Retorna documentos eliminados")
     void getEliminados_ok() {
@@ -203,7 +265,7 @@ public class DocumentoServiceTest {
     @DisplayName("RESTORE - Documento restaurado")
     void restore_ok() {
 
-        validDocumento.setEliminado(true); // estaba en papelera
+        validDocumento.setEliminado(true);
 
         when(documentoDAO.findById(validId))
                 .thenReturn(Optional.of(validDocumento));
@@ -211,8 +273,10 @@ public class DocumentoServiceTest {
         when(documentoDAO.update(eq(validId), any()))
                 .thenReturn(Optional.of(validDocumento));
 
-        assertThatCode(() -> documentoService.restoreDocumento(validId))
-                .doesNotThrowAnyException();
+        documentoService.restoreDocumento(validId);
+
+        verify(documentoDAO).update(eq(validId),
+                argThat(doc -> !doc.getEliminado()));
     }
 
     //DELETE PERMANENTE
@@ -220,6 +284,10 @@ public class DocumentoServiceTest {
     @Test
     @DisplayName("DELETE - Eliminación permanente")
     void deletePermanent_ok() {
+
+        // deletePermanent() primero llama getDocumentoById() -> findById()
+        when(documentoDAO.findById(validId))
+                .thenReturn(Optional.of(validDocumento));
 
         when(documentoDAO.delete(validId))
                 .thenReturn(true);
@@ -233,6 +301,10 @@ public class DocumentoServiceTest {
     @Test
     @DisplayName("DELETE - Documento no existe")
     void deletePermanent_notFound() {
+
+        // Primero encontramos el doc, pero el delete falla
+        when(documentoDAO.findById(validId))
+                .thenReturn(Optional.of(validDocumento));
 
         when(documentoDAO.delete(validId))
                 .thenReturn(false);
