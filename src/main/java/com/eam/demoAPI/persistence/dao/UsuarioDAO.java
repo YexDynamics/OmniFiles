@@ -1,12 +1,12 @@
 package com.eam.demoAPI.persistence.dao;
 
 import com.eam.demoAPI.business.dto.UsuarioDTO;
+import com.eam.demoAPI.business.dto.UsuarioResponseDTO;
 import com.eam.demoAPI.persistence.entity.Rol;
 import com.eam.demoAPI.persistence.entity.Usuario;
 import com.eam.demoAPI.persistence.mapper.UsuarioMapper;
 import com.eam.demoAPI.persistence.repository.RolRepository;
 import com.eam.demoAPI.persistence.repository.UsuarioRepository;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -21,56 +21,47 @@ public class UsuarioDAO {
     private final RolRepository rolRepository;
     private final UsuarioMapper usuarioMapper;
 
-    public UsuarioDTO save(UsuarioDTO dto) {
-
+    public UsuarioResponseDTO save(UsuarioDTO dto) {
         Usuario entity = usuarioMapper.toEntity(dto);
-
         if (dto.getRolId() != null) {
             Rol rol = rolRepository.findById(dto.getRolId())
                     .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
             entity.setRol(rol);
         }
-
         entity.setEstado(true);
-
-        Usuario saved = usuarioRepository.save(entity);
-
-        return usuarioMapper.toDTO(saved);
+        return usuarioMapper.toResponseDTO(usuarioRepository.save(entity));
     }
 
     public Optional<UsuarioDTO> findById(Long id) {
-        return usuarioRepository.findById(id)
-                .map(usuarioMapper::toDTO);
+        return usuarioRepository.findById(id).map(usuarioMapper::toDTO);
     }
 
-    public List<UsuarioDTO> findAll() {
-        return usuarioMapper.toDTOList(usuarioRepository.findAll());
+    public Optional<UsuarioResponseDTO> findResponseById(Long id) {
+        return usuarioRepository.findById(id).map(usuarioMapper::toResponseDTO);
+    }
+
+    public List<UsuarioResponseDTO> findAll() {
+        return usuarioMapper.toResponseDTOList(usuarioRepository.findAll());
     }
 
     public Optional<UsuarioDTO> findByEmail(String email) {
-        return usuarioRepository.findByEmail(email)
-                .map(usuarioMapper::toDTO);
+        return usuarioRepository.findByEmail(email).map(usuarioMapper::toDTO);
     }
 
     public boolean existsByEmail(String email) {
         return usuarioRepository.existsByEmail(email);
     }
 
-    public Optional<UsuarioDTO> update(Long id, UsuarioDTO dto) {
-        return usuarioRepository.findById(id)
-                .map(existing -> {
-
-                    usuarioMapper.updateEntityFromDTO(dto, existing);
-
-                    if (dto.getRolId() != null) {
-                        Rol rol = rolRepository.findById(dto.getRolId())
-                                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
-                        existing.setRol(rol);
-                    }
-
-                    Usuario updated = usuarioRepository.save(existing);
-                    return usuarioMapper.toDTO(updated);
-                });
+    public Optional<UsuarioResponseDTO> update(Long id, UsuarioDTO dto) {
+        return usuarioRepository.findById(id).map(existing -> {
+            usuarioMapper.updateEntityFromDTO(dto, existing);
+            if (dto.getRolId() != null) {
+                Rol rol = rolRepository.findById(dto.getRolId())
+                        .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+                existing.setRol(rol);
+            }
+            return usuarioMapper.toResponseDTO(usuarioRepository.save(existing));
+        });
     }
 
     public boolean delete(Long id) {
