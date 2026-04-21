@@ -1,4 +1,4 @@
-package java.com.eam.demoAPI.business;
+package com.eam.demoAPI.business;
 
 import com.eam.demoAPI.business.dto.DocumentoDTO;
 import com.eam.demoAPI.business.dto.UsuarioDTO;
