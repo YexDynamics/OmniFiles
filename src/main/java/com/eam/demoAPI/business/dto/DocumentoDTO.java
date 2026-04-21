@@ -1,6 +1,5 @@
 package com.eam.demoAPI.business.dto;
 
-import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -21,8 +20,8 @@ public class DocumentoDTO {
     @Schema(description = "Ruta del archivo en el servidor", accessMode = Schema.AccessMode.READ_ONLY)
     private String rutaArchivo;
 
-    @Schema(description = "Estado actual del documento", example = "CREADO")
-    private EstadoDocumento estado;
+    @Schema(description = "Nombre del estado actual (CREADO, EN_REVISION, APROBADO, RECHAZADO)", example = "CREADO")
+    private String estado;
 
     @Schema(description = "ID del usuario responsable", example = "1", required = true)
     private Long usuarioId;

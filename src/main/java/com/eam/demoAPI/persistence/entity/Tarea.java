@@ -1,6 +1,5 @@
 package com.eam.demoAPI.persistence.entity;
 
-import com.eam.demoAPI.persistence.entity.enums.EstadoTarea;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,8 +24,9 @@ public class Tarea {
     @JoinColumn(name = "usuario_asignado_id", nullable = false)
     private Usuario usuarioAsignado;
 
-    @Enumerated(EnumType.STRING)
-    private EstadoTarea estado = EstadoTarea.PENDIENTE;
+    @ManyToOne
+    @JoinColumn(name = "estado_id", nullable = false)
+    private EstadoTarea estado;
 
     @Column(length = 500)
     private String observaciones;

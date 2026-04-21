@@ -1,7 +1,7 @@
 package com.eam.demoAPI.persistence.repository;
 
 import com.eam.demoAPI.persistence.entity.Documento;
-import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
+import com.eam.demoAPI.persistence.entity.EstadoDocumento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

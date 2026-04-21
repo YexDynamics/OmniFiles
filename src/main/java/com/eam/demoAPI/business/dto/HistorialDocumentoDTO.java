@@ -1,7 +1,5 @@
 package com.eam.demoAPI.business.dto;
 
-import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
-import com.eam.demoAPI.persistence.entity.enums.TipoAccion;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -22,12 +20,14 @@ public class HistorialDocumentoDTO {
     @Schema(description = "ID usuario", example = "2", required = true)
     private Long usuarioId;
 
-    @Schema(description = "Estado resultante", example = "APROBADO", accessMode = Schema.AccessMode.READ_ONLY)
-    private EstadoDocumento estado;
+    @Schema(description = "Nombre del estado resultante (CREADO, EN_REVISION, APROBADO, RECHAZADO)",
+            example = "APROBADO", accessMode = Schema.AccessMode.READ_ONLY)
+    private String estado;
 
-    @Schema(description = "Acción realizada", example = "ACTUALIZACION", accessMode = Schema.AccessMode.READ_ONLY)
-    private TipoAccion accion;
+    @Schema(description = "Nombre de la acción realizada (CREACION, ACTUALIZACION, etc.)",
+            example = "CREACION", accessMode = Schema.AccessMode.READ_ONLY)
+    private String accion;
 
-    @Schema(description = "Fecha del cambio", example = "2025-09-07T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Fecha del cambio", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime fechaCambio;
 }

@@ -1,6 +1,5 @@
 package com.eam.demoAPI.business.dto;
 
-import com.eam.demoAPI.persistence.entity.enums.EstadoTarea;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,8 +22,9 @@ public class TareaDTO {
     @Schema(description = "ID del usuario asignado", example = "2", required = true)
     private Long usuarioAsignadoId;
 
-    @Schema(description = "Estado de la tarea", example = "PENDIENTE", accessMode = Schema.AccessMode.READ_ONLY)
-    private EstadoTarea estado;
+    @Schema(description = "Nombre del estado (PENDIENTE, APROBADO, RECHAZADO, CORRECCION)",
+            example = "PENDIENTE", accessMode = Schema.AccessMode.READ_ONLY)
+    private String estado;
 
     @Schema(description = "Observaciones o comentario de la decisión", example = "Falta firma")
     private String observaciones;

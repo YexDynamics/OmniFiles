@@ -1,7 +1,7 @@
 package com.eam.demoAPI.persistence.repository;
 
+import com.eam.demoAPI.persistence.entity.EstadoTarea;
 import com.eam.demoAPI.persistence.entity.Tarea;
-import com.eam.demoAPI.persistence.entity.enums.EstadoTarea;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

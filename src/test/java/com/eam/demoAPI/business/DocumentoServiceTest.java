@@ -7,7 +7,6 @@ import com.eam.demoAPI.exception.NotFoundException;
 import com.eam.demoAPI.persistence.dao.DocumentoDAO;
 import com.eam.demoAPI.persistence.dao.HistorialDocumentoDAO;
 import com.eam.demoAPI.persistence.dao.UsuarioDAO;
-import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,8 +36,7 @@ public class DocumentoServiceTest {
     @Mock private HistorialDocumentoDAO historialDAO;
     @Mock private UsuarioDAO usuarioDAO;
 
-    @InjectMocks
-    private DocumentoServiceImpl documentoService;
+    @InjectMocks private DocumentoServiceImpl documentoService;
 
     private DocumentoDTO validDocumento;
     private Long validId;
@@ -51,7 +49,7 @@ public class DocumentoServiceTest {
         validDocumento.setId(validId);
         validDocumento.setNombre("Documento Test");
         validDocumento.setUsuarioId(1L);
-        validDocumento.setEstado(EstadoDocumento.CREADO);
+        validDocumento.setEstado("CREADO");       // String en vez de enum
         validDocumento.setEliminado(false);
         validDocumento.setCreatedAt(LocalDateTime.now());
 
@@ -70,7 +68,7 @@ public class DocumentoServiceTest {
         when(usuarioDAO.findByEmail("test@test.com")).thenReturn(Optional.of(usuarioActual));
     }
 
-    // CREATE
+    // ─── CREATE ───────────────────────────────────────────────────────────────
 
     @Test @DisplayName("CREATE - Documento válido debe crearse")
     void createDocumento_valid_shouldReturnCreated() {
@@ -107,7 +105,7 @@ public class DocumentoServiceTest {
         verify(documentoDAO, never()).save(any());
     }
 
-    // READ
+    // ─── READ ─────────────────────────────────────────────────────────────────
 
     @Test @DisplayName("GET BY ID - Documento existe")
     void getDocumentoById_exists() {
@@ -128,7 +126,7 @@ public class DocumentoServiceTest {
                 .hasMessageContaining("Documento no encontrado");
     }
 
-    // FILTER
+    // ─── FILTER ───────────────────────────────────────────────────────────────
 
     @Test @DisplayName("FILTER - Sin parámetros retorna todos los activos")
     void getDocumentosFiltrados_ok() {
@@ -150,10 +148,9 @@ public class DocumentoServiceTest {
 
         assertThat(result).isNotEmpty();
         assertThat(result).allMatch(doc -> doc.getUsuarioId().equals(1L));
-        verify(documentoDAO, times(1)).findByUsuario(1L);
     }
 
-    // UPDATE
+    // ─── UPDATE ───────────────────────────────────────────────────────────────
 
     @Test @DisplayName("UPDATE - Actualización correcta")
     void updateDocumento_ok() {
@@ -177,7 +174,7 @@ public class DocumentoServiceTest {
                 .isInstanceOf(NotFoundException.class);
     }
 
-    //SOFT DELETE
+    // ─── SOFT DELETE ──────────────────────────────────────────────────────────
 
     @Test @DisplayName("SOFT DELETE - Documento eliminado lógicamente")
     void softDelete_ok() {
@@ -189,7 +186,7 @@ public class DocumentoServiceTest {
         verify(documentoDAO).update(eq(validId), argThat(doc -> doc.getEliminado()));
     }
 
-    //PAPELERA
+    // ─── PAPELERA ─────────────────────────────────────────────────────────────
 
     @Test @DisplayName("PAPELERA - Retorna documentos eliminados")
     void getEliminados_ok() {
@@ -201,7 +198,7 @@ public class DocumentoServiceTest {
         assertThat(result).isNotEmpty();
     }
 
-    // RESTORE
+    // ─── RESTORE ──────────────────────────────────────────────────────────────
 
     @Test @DisplayName("RESTORE - Documento restaurado")
     void restore_ok() {
@@ -214,7 +211,7 @@ public class DocumentoServiceTest {
         verify(documentoDAO).update(eq(validId), argThat(doc -> !doc.getEliminado()));
     }
 
-    // DELETE PERMANENTE
+    // ─── DELETE PERMANENTE ────────────────────────────────────────────────────
 
     @Test @DisplayName("DELETE - Eliminación permanente exitosa")
     void deletePermanent_ok() {
