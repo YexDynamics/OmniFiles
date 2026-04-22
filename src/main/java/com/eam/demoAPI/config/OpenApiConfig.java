@@ -24,32 +24,23 @@ import org.springframework.context.annotation.Configuration;
                 ),
                 license = @License(
                         name = "MIT License",
-                        url = "https://opensource.org/licenses/MIT"
+                        url = "https://opensource.org"
                 )
         ),
-        servers = {
-                @Server(
-                        url = "http://localhost:8080",
-                        description = "Servidor de Desarrollo"
-                ),
-                @Server(
-                        url = "http://localhost:8090",
-                        description = "Servidor de Pruebas"
-                ),
-                @Server(
-                        url = "http://localhost:8099",
-                        description = "Servidor de Producción"
-                )
+
+                servers = {
+                        @Server(
+                                url = "/omnifiles",
+                                description = "Servidor Local"
+                        )
         }
 )
-
 public class OpenApiConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .components(new Components()
-
                         .addSecuritySchemes("Bearer Authentication",
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
