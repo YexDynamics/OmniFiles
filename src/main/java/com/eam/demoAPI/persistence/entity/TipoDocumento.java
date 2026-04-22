@@ -16,11 +16,14 @@ public class TipoDocumento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String nombre;
 
     private String descripcion;
 
-    private Boolean estado;
+    private Boolean estado = true;
+
+    private Boolean flujoConfigurado = false;
 
     @OneToMany(mappedBy = "tipoDocumento")
     private List<Documento> documentos;

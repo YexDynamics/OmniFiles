@@ -1,6 +1,5 @@
 package com.eam.demoAPI.persistence.entity;
 
-import com.eam.demoAPI.persistence.entity.enums.EstadoDocumento;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,10 +20,13 @@ public class Documento {
 
     private String rutaArchivo;
 
-    @Enumerated(EnumType.STRING)
+    @ManyToOne
+    @JoinColumn(name = "estado_id")
     private EstadoDocumento estado;
 
     private LocalDateTime fechaCreacion;
+    private LocalDateTime fechaActualizacion;
+
     private Boolean eliminado = false;
 
     @ManyToOne

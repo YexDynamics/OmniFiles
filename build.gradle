@@ -1,7 +1,13 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.0.2'
+	id 'org.springframework.boot' version '3.3.2'
 	id 'io.spring.dependency-management' version '1.1.7'
+	// Genera pruebas de cobertura
+	id 'jacoco'
+	// plugin sonarQube (Comentado por si lo necesitas luego)
+	// id "org.sonarqube" version "4.4.1.3373"
+	// plugin allure reports
+	id "io.qameta.allure" version "3.0.2"
 }
 
 group = 'com.eam'
@@ -10,7 +16,7 @@ description = 'Demo API con Spring Boot'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(25)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -25,26 +31,73 @@ repositories {
 }
 
 dependencies {
+	// --- SPRING BOOT CORE ---
+	// No necesitan versión porque las maneja el plugin de Spring Boot
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	compileOnly 'org.projectlombok:lombok'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
 	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// --- LOMBOK ---
+	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
+	// --- TESTING ---
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.mockito:mockito-core:5.11.0'
-	testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
+	// Nota: Spring Boot 3.3.2 ya trae Mockito 5.11 por defecto, no hace falta declararlo aparte
+	testImplementation 'io.qameta.allure:allure-junit5:2.34.0'
 
-	// https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12")
+	// --- DOCUMENTACIÓN (Swagger/OpenAPI) ---
+	// La 2.5.0 o 2.6.0 son muy estables para Spring Boot 3.3.x
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
-	// MapStruct para mapeo automático
+	// --- MAPSTRUCT ---
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-	// Para usar MapStruct con Lombok
+	// Bridge para que Lombok y MapStruct no peleen
 	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+	// --- SEGURIDAD JWT ---
+	// Volvemos a la 0.11.5 para que no te rompa el código que ya escribiste
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Descomenta esto cuando quieras que el reporte se genere automático al testear
+	finalizedBy jacocoTestReport, allureReport
+}
+
+// --- CONFIGURACIÓN JACOCO ---
+jacoco {
+	toolVersion = "0.8.12" // Actualicé a una versión más reciente para Java 21
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+		html.required = true
+	}
+	finalizedBy jacocoTestCoverageVerification
+}
+
+jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			limit {
+				// Exigencia del 30% de cobertura
+				minimum = 0.80
+			}
+		}
+	}
+}
+
+// --- CONFIGURACIÓN ALLURE ---
+allure {
+	version = "2.34.0"
+	autoconfigure = true
+	aspectjweaver = true
 }

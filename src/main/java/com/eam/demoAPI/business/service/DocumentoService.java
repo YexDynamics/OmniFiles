@@ -1,9 +1,9 @@
 package com.eam.demoAPI.business.service;
 
-
 import com.eam.demoAPI.business.dto.DocumentoDTO;
 import com.eam.demoAPI.business.dto.HistorialDocumentoDTO;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DocumentoService {
@@ -12,7 +12,10 @@ public interface DocumentoService {
 
     DocumentoDTO getDocumentoById(Long id);
 
-    List<DocumentoDTO> getDocumentosFiltrados(String estado, Long usuarioId);
+    List<DocumentoDTO> getDocumentosFiltrados(String estado, Long usuarioId,
+                                              Long tipoDocumentoId,
+                                              LocalDateTime fechaDesde,
+                                              LocalDateTime fechaHasta);
 
     DocumentoDTO updateDocumento(Long id, DocumentoDTO documentoDTO);
 

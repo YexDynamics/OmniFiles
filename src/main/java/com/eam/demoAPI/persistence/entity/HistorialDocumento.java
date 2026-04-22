@@ -16,11 +16,15 @@ public class HistorialDocumento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String accion;
+    @ManyToOne
+    @JoinColumn(name = "estado_id")
+    private EstadoDocumento estado;
 
-    private String estadoResultante;
+    @ManyToOne
+    @JoinColumn(name = "accion_id")
+    private TipoAccion accion;
 
-    private LocalDateTime fecha;
+    private LocalDateTime fechaCambio;
 
     @ManyToOne
     @JoinColumn(name = "documento_id")
