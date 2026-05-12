@@ -7,7 +7,13 @@ import com.eam.demoAPI.business.service.DocumentoService;
 import com.eam.demoAPI.exception.NotFoundException;
 import com.eam.demoAPI.persistence.dao.DocumentoDAO;
 import com.eam.demoAPI.persistence.dao.HistorialDocumentoDAO;
+import com.eam.demoAPI.business.service.EmailService;
+import com.eam.demoAPI.persistence.dao.FlujoDAO;
+import com.eam.demoAPI.persistence.dao.TareaDAO;
 import com.eam.demoAPI.persistence.dao.UsuarioDAO;
+import com.eam.demoAPI.persistence.entity.Documento;
+import com.eam.demoAPI.persistence.entity.EtapaFlujo;
+import com.eam.demoAPI.persistence.repository.DocumentoRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +47,10 @@ public class DocumentoServiceImpl implements DocumentoService {
     private final DocumentoDAO documentoDAO;
     private final HistorialDocumentoDAO historialDAO;
     private final UsuarioDAO usuarioDAO;
+    private final EmailService emailService;         // NUEVO
+    private final FlujoDAO flujoDAO;               // NUEVO
+    private final TareaDAO tareaDAO;               // NUEVO
+    private final DocumentoRepository documentoRepository; // NUEVO
 
     @Override
     public DocumentoDTO createDocumento(DocumentoDTO dto) {
@@ -53,6 +63,29 @@ public class DocumentoServiceImpl implements DocumentoService {
 
         DocumentoDTO result = documentoDAO.save(dto);
         registrarAccion(result, ACCION_CREACION);
+
+        // Notificar al creador por email
+        usuarioDAO.findById(result.getUsuarioId()).ifPresent(u ->
+                emailService.notificarCreacion(u.getEmail(), result.getNombre()));
+
+        // NUEVO: si la plantilla tiene flujo configurado, generar la primera tarea
+        if (dto.getTipoDocumentoId() != null) {
+            flujoDAO.findEntityByTipoDocumentoId(dto.getTipoDocumentoId())
+                    .ifPresent(flujo -> {
+                        if (flujo.getEtapas() != null && !flujo.getEtapas().isEmpty()) {
+                            EtapaFlujo primeraEtapa = flujo.getEtapas().get(0);
+                            Documento docEntity = documentoRepository.findById(result.getId())
+                                    .orElseThrow();
+                            tareaDAO.crearDesdeEtapa(primeraEtapa, docEntity);
+                            // Cambiar estado a EN_REVISION porque ya entró al flujo
+                            result.setEstado("EN_REVISION");
+                            documentoDAO.update(result.getId(), result);
+                            log.info("Primera tarea creada para documento {} en etapa '{}'",
+                                    result.getId(), primeraEtapa.getNombre());
+                        }
+                    });
+        }
+
         return result;
     }
 
