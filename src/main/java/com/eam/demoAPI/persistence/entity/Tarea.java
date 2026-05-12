@@ -24,6 +24,11 @@ public class Tarea {
     @JoinColumn(name = "usuario_asignado_id", nullable = false)
     private Usuario usuarioAsignado;
 
+    // NUEVO: referencia a la etapa del flujo que originó esta tarea
+    @ManyToOne
+    @JoinColumn(name = "etapa_flujo_id", nullable = false)
+    private EtapaFlujo etapaFlujo;
+
     @ManyToOne
     @JoinColumn(name = "estado_id", nullable = false)
     private EstadoTarea estado;

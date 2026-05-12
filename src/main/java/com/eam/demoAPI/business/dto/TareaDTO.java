@@ -22,6 +22,10 @@ public class TareaDTO {
     @Schema(description = "ID del usuario asignado", example = "2", required = true)
     private Long usuarioAsignadoId;
 
+    // NUEVO
+    @Schema(description = "ID de la etapa del flujo", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
+    private Long etapaFlujoId;
+
     @Schema(description = "Nombre del estado (PENDIENTE, APROBADO, RECHAZADO, CORRECCION)",
             example = "PENDIENTE", accessMode = Schema.AccessMode.READ_ONLY)
     private String estado;

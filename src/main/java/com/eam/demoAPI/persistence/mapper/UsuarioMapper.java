@@ -11,29 +11,31 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface UsuarioMapper {
 
-    @Mapping(target = "rolId", source = "rol.id")
+    @Mapping(target = "rolId",  source = "rol.id")
     @Mapping(target = "activo", source = "estado")
     UsuarioDTO toDTO(Usuario entity);
 
-    @Mapping(target = "rolId", source = "rol.id")
+    @Mapping(target = "rolId",     source = "rol.id")
     @Mapping(target = "rolNombre", source = "rol.nombre")
-    @Mapping(target = "activo", source = "estado")
+    @Mapping(target = "activo",    source = "estado")
     UsuarioResponseDTO toResponseDTO(Usuario entity);
 
     List<UsuarioResponseDTO> toResponseDTOList(List<Usuario> entities);
 
     List<UsuarioDTO> toDTOList(List<Usuario> entities);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "rol", source = "rolId", qualifiedByName = "idToRol")
-    @Mapping(target = "estado", source = "activo")
+    @Mapping(target = "id",         ignore = true)
+    @Mapping(target = "contrasena", ignore = true) // el DAO se encarga de hashear
+    @Mapping(target = "rol",        source = "rolId", qualifiedByName = "idToRol")
+    @Mapping(target = "estado",     source = "activo")
     @Mapping(target = "documentos", ignore = true)
     Usuario toEntity(UsuarioDTO dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "rol", ignore = true)
-    @Mapping(target = "estado", source = "activo")
+    @Mapping(target = "id",         ignore = true)
+    @Mapping(target = "contrasena", ignore = true) // el DAO se encarga de hashear
+    @Mapping(target = "rol",        ignore = true)
+    @Mapping(target = "estado",     source = "activo")
     @Mapping(target = "documentos", ignore = true)
     void updateEntityFromDTO(UsuarioDTO dto, @MappingTarget Usuario entity);
 

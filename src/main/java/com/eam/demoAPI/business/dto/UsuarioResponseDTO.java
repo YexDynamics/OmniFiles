@@ -28,4 +28,11 @@ public class UsuarioResponseDTO {
 
     @Schema(description = "Indica si el usuario está activo", example = "true")
     private Boolean activo;
+
+    @Schema(description = "Número de teléfono", example = "3001234567")
+    private String telefono;
+
+    @Schema(description = "Cargo del usuario en la organización", example = "Analista de documentos")
+    private String cargo;
+
 }

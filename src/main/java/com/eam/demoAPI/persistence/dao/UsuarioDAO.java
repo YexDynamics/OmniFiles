@@ -8,6 +8,7 @@ import com.eam.demoAPI.persistence.mapper.UsuarioMapper;
 import com.eam.demoAPI.persistence.repository.RolRepository;
 import com.eam.demoAPI.persistence.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,14 +21,21 @@ public class UsuarioDAO {
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final UsuarioMapper usuarioMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UsuarioResponseDTO save(UsuarioDTO dto) {
         Usuario entity = usuarioMapper.toEntity(dto);
+
+        if (dto.getContrasena() != null && !dto.getContrasena().isBlank()) {
+            entity.setContrasena(passwordEncoder.encode(dto.getContrasena()));
+        }
+
         if (dto.getRolId() != null) {
             Rol rol = rolRepository.findById(dto.getRolId())
                     .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
             entity.setRol(rol);
         }
+
         entity.setEstado(true);
         return usuarioMapper.toResponseDTO(usuarioRepository.save(entity));
     }
@@ -54,12 +62,20 @@ public class UsuarioDAO {
 
     public Optional<UsuarioResponseDTO> update(Long id, UsuarioDTO dto) {
         return usuarioRepository.findById(id).map(existing -> {
+
             usuarioMapper.updateEntityFromDTO(dto, existing);
+
+            // Solo hashear si mandan contraseña nueva
+            if (dto.getContrasena() != null && !dto.getContrasena().isBlank()) {
+                existing.setContrasena(passwordEncoder.encode(dto.getContrasena()));
+            }
+
             if (dto.getRolId() != null) {
                 Rol rol = rolRepository.findById(dto.getRolId())
                         .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
                 existing.setRol(rol);
             }
+
             return usuarioMapper.toResponseDTO(usuarioRepository.save(existing));
         });
     }
