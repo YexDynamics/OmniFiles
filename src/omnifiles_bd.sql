@@ -1,4 +1,4 @@
--- ============================================================
+mysqlinformation_schema-- ============================================================
 -- OmniFiles — Script de Base de Datos
 -- Sistema de Gestión Documental | EAM Institución Universitaria
 -- ============================================================

@@ -8,6 +8,7 @@ import com.eam.demoAPI.persistence.mapper.UsuarioMapper;
 import com.eam.demoAPI.persistence.repository.RolRepository;
 import com.eam.demoAPI.persistence.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,9 +21,11 @@ public class UsuarioDAO {
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final UsuarioMapper usuarioMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UsuarioResponseDTO save(UsuarioDTO dto) {
         Usuario entity = usuarioMapper.toEntity(dto);
+        entity.setContrasena(passwordEncoder.encode(dto.getContrasena()));
         if (dto.getRolId() != null) {
             Rol rol = rolRepository.findById(dto.getRolId())
                     .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
