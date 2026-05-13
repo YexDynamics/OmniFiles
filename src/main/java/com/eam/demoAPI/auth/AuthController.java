@@ -1,15 +1,22 @@
 package com.eam.demoAPI.auth;
 
-import com.eam.demoAPI.auth.dto.LoginRequest;
-import com.eam.demoAPI.business.dto.LoginResponseDTO;
-import com.eam.demoAPI.exception.NotFoundException;
+import com.eam.demoAPI.auth.dto.AuthRequest;
+import com.eam.demoAPI.auth.dto.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controlador REST para autenticación.
+ *
+ * ENDPOINTS:
+ * - POST /auth/login — Iniciar sesión y obtener token JWT
+ */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -19,21 +26,23 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * LOGIN - Iniciar sesión
+     */
     @PostMapping("/login")
-    @Operation(summary = "Iniciar sesión", description = "Retorna token JWT y datos del usuario")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
-            LoginResponseDTO response = authService.login(request.getEmail(), request.getPassword());
-            return ResponseEntity.ok(response);
-
-        } catch (NotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
-        }
+    @Operation(
+            summary = "Iniciar sesión",
+            description = "Autentica al usuario con email y contraseña. Retorna el token JWT con el tiempo de expiración y los roles"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Login exitoso — retorna token JWT"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos o campos vacíos"),
+            @ApiResponse(responseCode = "401", description = "Credenciales inválidas"),
+            @ApiResponse(responseCode = "403", description = "Usuario inactivo")
+    })
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody AuthRequest authRequest
+    ) {
+        return ResponseEntity.ok(authService.login(authRequest));
     }
 }
