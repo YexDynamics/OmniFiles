@@ -197,6 +197,11 @@ public class DocumentoServiceImpl implements DocumentoService {
         DocumentoDTO doc = getDocumentoById(id);
         if (Boolean.TRUE.equals(doc.getEliminado()))
             throw new IllegalArgumentException("No se puede descargar un documento en papelera");
+
+        // Actualizar fecha de último acceso para que el limpiador no lo borre
+        doc.setUpdatedAt(LocalDateTime.now());
+        documentoDAO.update(id, doc);
+
         registrarAccion(doc, ACCION_DESCARGA);
         return documentoDAO.getFile(doc.getId());
     }

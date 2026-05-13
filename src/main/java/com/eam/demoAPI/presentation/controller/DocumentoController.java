@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -48,6 +49,9 @@ public class DocumentoController {
     private final DocumentoService documentoService;
 
     private static final String UPLOAD_DIR = "./uploads/";
+
+    // Extensiones permitidas
+    private static final Set<String> EXTENSIONES_PERMITIDAS = Set.of(".pdf", ".docx", ".txt");
 
     /**
      * CREATE - Crear documento
@@ -120,6 +124,16 @@ public class DocumentoController {
         try {
             if (archivo.isEmpty()) {
                 return ResponseEntity.badRequest().body("El archivo no puede estar vacío");
+            }
+
+            // Validar extensión — solo PDF, DOCX y TXT
+            String originalFilename = archivo.getOriginalFilename() != null
+                    ? archivo.getOriginalFilename().toLowerCase() : "";
+            boolean extensionValida = EXTENSIONES_PERMITIDAS.stream()
+                    .anyMatch(originalFilename::endsWith);
+            if (!extensionValida) {
+                return ResponseEntity.badRequest()
+                        .body("Formato no permitido. Solo se aceptan: PDF, DOCX, TXT");
             }
 
             Path uploadPath = Paths.get(UPLOAD_DIR);
