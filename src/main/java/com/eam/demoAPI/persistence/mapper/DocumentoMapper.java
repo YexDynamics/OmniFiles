@@ -21,24 +21,23 @@ public interface DocumentoMapper {
 
     List<DocumentoDTO> toDTOList(List<Documento> entities);
 
-    // DTO -> ENTITY: estado lo setea el DAO, fechaCreacion viene del DTO
+    // DTO -> ENTITY
     @Mapping(target = "id",               ignore = true)
     @Mapping(target = "estado",           ignore = true)
     @Mapping(target = "rutaArchivo",      ignore = true)
-    @Mapping(target = "fechaCreacion",    source = "createdAt")     // ← ya no ignore
+    @Mapping(target = "fechaCreacion",    source = "createdAt")
     @Mapping(target = "fechaActualizacion", ignore = true)
     @Mapping(target = "usuario",          source = "usuarioId",       qualifiedByName = "idToUsuario")
     @Mapping(target = "tipoDocumento",    source = "tipoDocumentoId", qualifiedByName = "idToTipoDocumento")
     Documento toEntity(DocumentoDTO dto);
 
-    // UPDATE: ignora relaciones y fechas
+    // UPDATE: rutaArchivo ya NO se ignora para que el upload se guarde correctamente
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "id",               ignore = true)
-    @Mapping(target = "estado",           ignore = true)
-    @Mapping(target = "usuario",          ignore = true)
-    @Mapping(target = "tipoDocumento",    ignore = true)
-    @Mapping(target = "rutaArchivo",      ignore = true)
-    @Mapping(target = "fechaCreacion",    ignore = true)
+    @Mapping(target = "id",                 ignore = true)
+    @Mapping(target = "estado",             ignore = true)
+    @Mapping(target = "usuario",            ignore = true)
+    @Mapping(target = "tipoDocumento",      ignore = true)
+    @Mapping(target = "fechaCreacion",      ignore = true)
     @Mapping(target = "fechaActualizacion", ignore = true)
     void updateEntityFromDTO(DocumentoDTO dto, @MappingTarget Documento entity);
 
