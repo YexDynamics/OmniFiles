@@ -17,7 +17,7 @@ public class Flujo {
     private Long id;
 
     @OneToOne
-    @JoinColumn(name = "tipo_documento_id", nullable = false)
+    @JoinColumn(name = "tipo_documento_id", nullable = true)
     private TipoDocumento tipoDocumento;
 
     @Column(nullable = false)

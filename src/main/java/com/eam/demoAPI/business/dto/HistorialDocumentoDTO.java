@@ -20,13 +20,14 @@ public class HistorialDocumentoDTO {
     @Schema(description = "ID usuario", example = "2", required = true)
     private Long usuarioId;
 
-    @Schema(description = "Nombre del estado resultante (CREADO, EN_REVISION, APROBADO, RECHAZADO)",
-            example = "APROBADO", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Estado resultante", example = "APROBADO", accessMode = Schema.AccessMode.READ_ONLY)
     private String estado;
 
-    @Schema(description = "Nombre de la acción realizada (CREACION, ACTUALIZACION, etc.)",
-            example = "CREACION", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Acción realizada", example = "CREACION", accessMode = Schema.AccessMode.READ_ONLY)
     private String accion;
+
+    @Schema(description = "Observaciones del revisor/aprobador", example = "Falta firma en página 3")
+    private String observaciones;
 
     @Schema(description = "Fecha del cambio", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime fechaCambio;
