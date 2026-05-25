@@ -33,4 +33,7 @@ public class HistorialDocumento {
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;
+
+    @Column(columnDefinition = "TEXT")
+    private String observaciones;
 }

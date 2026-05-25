@@ -11,22 +11,22 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface HistorialDocumentoMapper {
 
-    // ENTITY -> DTO: mapea nombre de estado y acción
-    @Mapping(target = "documentoId", source = "documento.id")
-    @Mapping(target = "usuarioId",   source = "usuario.id")
-    @Mapping(target = "estado",      source = "estado.nombre")
-    @Mapping(target = "accion",      source = "accion.nombre")
+    @Mapping(target = "documentoId",   source = "documento.id")
+    @Mapping(target = "usuarioId",     source = "usuario.id")
+    @Mapping(target = "estado",        source = "estado.nombre")
+    @Mapping(target = "accion",        source = "accion.nombre")
+    @Mapping(target = "observaciones", source = "observaciones")
     HistorialDocumentoDTO toDTO(HistorialDocumento entity);
 
     List<HistorialDocumentoDTO> toDTOList(List<HistorialDocumento> entities);
 
-    // DTO -> ENTITY: estado y accion los setea el DAO (lookup por nombre)
-    @Mapping(target = "id",          ignore = true)
-    @Mapping(target = "estado",      ignore = true)
-    @Mapping(target = "accion",      ignore = true)
-    @Mapping(target = "fechaCambio", ignore = true)
-    @Mapping(target = "documento",   source = "documentoId", qualifiedByName = "idToDocumento")
-    @Mapping(target = "usuario",     source = "usuarioId",   qualifiedByName = "idToUsuario")
+    @Mapping(target = "id",            ignore = true)
+    @Mapping(target = "estado",        ignore = true)
+    @Mapping(target = "accion",        ignore = true)
+    @Mapping(target = "fechaCambio",   ignore = true)
+    @Mapping(target = "documento",     source = "documentoId", qualifiedByName = "idToDocumento")
+    @Mapping(target = "usuario",       source = "usuarioId",   qualifiedByName = "idToUsuario")
+    @Mapping(target = "observaciones", source = "observaciones")
     HistorialDocumento toEntity(HistorialDocumentoDTO dto);
 
     @Named("idToDocumento")

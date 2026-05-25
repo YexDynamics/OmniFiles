@@ -2,10 +2,8 @@ package com.eam.demoAPI.auth.dto;
 
 import java.util.List;
 
-/**
- * Respuesta del login con el token JWT y datos del usuario.
- */
 public record AuthResponse(
+        Long id,
         String accessToken,
         String tokenType,
         long expiresInSeconds,
