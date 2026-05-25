@@ -1,216 +1,225 @@
 -- ============================================================
--- OmniFiles — Script de Base de Datos v3.0
--- Sistema de Gestión Documental | EAM Institución Universitaria
--- Incluye: flujos automáticos por plantilla, múltiples roles,
--- etapas con rol y usuario responsable, trazabilidad completa
+-- OmniFiles — Script completo de base de datos
+-- MariaDB 11.8.6
+-- Actualizado: Mayo 2026
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS omnifiles
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
-
+CREATE DATABASE IF NOT EXISTS omnifiles CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE omnifiles;
 
--- ============================================================
--- TABLAS DE CATÁLOGO
--- Leídas dinámicamente por el código — agregar valores aquí
--- no requiere cambios en el backend
--- ============================================================
+-- ── Tablas de catálogo ──────────────────────────────────────
 
-CREATE TABLE rol (
-    id      BIGINT AUTO_INCREMENT PRIMARY KEY,
-    nombre  VARCHAR(50) NOT NULL UNIQUE
-);
+CREATE TABLE IF NOT EXISTS rol (
+                                   id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                   nombre      VARCHAR(50)  NOT NULL UNIQUE,
+    descripcion VARCHAR(255)
+    );
 
-CREATE TABLE estado_documento (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    nombre      VARCHAR(50)  NOT NULL UNIQUE COMMENT 'Clave Java: CREADO | EN_REVISION | APROBADO | RECHAZADO',
-    descripcion VARCHAR(200)
-);
+CREATE TABLE IF NOT EXISTS estado_documento (
+                                                id     BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                nombre VARCHAR(50) NOT NULL UNIQUE
+    );
 
-CREATE TABLE estado_tarea (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    nombre      VARCHAR(50)  NOT NULL UNIQUE COMMENT 'Clave Java: PENDIENTE | APROBADO | RECHAZADO | CORRECCION',
-    descripcion VARCHAR(200)
-);
+CREATE TABLE IF NOT EXISTS estado_tarea (
+                                            id     BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                            nombre VARCHAR(50) NOT NULL UNIQUE
+    );
 
-CREATE TABLE tipo_accion (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    nombre      VARCHAR(50)  NOT NULL UNIQUE COMMENT 'Clave Java: CREACION | ACTUALIZACION | CAMBIO_ESTADO | ELIMINACION | RESTAURACION | DESCARGA',
-    descripcion VARCHAR(200)
-);
+CREATE TABLE IF NOT EXISTS tipo_accion (
+                                           id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                           nombre      VARCHAR(100) NOT NULL UNIQUE,
+    descripcion VARCHAR(255)
+    );
 
--- ============================================================
--- TABLAS PRINCIPALES
--- ============================================================
+-- ── Usuarios ────────────────────────────────────────────────
 
-CREATE TABLE usuario (
-    id          BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    nombre      VARCHAR(100) NOT NULL,
-    email       VARCHAR(100) NOT NULL UNIQUE,
-    contrasena  VARCHAR(255) NOT NULL               COMMENT 'BCrypt — el backend hashea automáticamente',
-    estado      BOOLEAN      NOT NULL DEFAULT TRUE  COMMENT 'TRUE = activo',
-    telefono    VARCHAR(20)  NULL,
-    cargo       VARCHAR(100) NULL,
-    rol_id      BIGINT          NOT NULL,
+CREATE TABLE IF NOT EXISTS usuario (
+                                       id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                       nombre     VARCHAR(100),
+    email      VARCHAR(150) NOT NULL UNIQUE,
+    contrasena VARCHAR(255) NOT NULL,
+    estado     BOOLEAN DEFAULT TRUE,
+    telefono   VARCHAR(20),
+    cargo      VARCHAR(100),
+    rol_id     BIGINT,
     CONSTRAINT fk_usuario_rol FOREIGN KEY (rol_id) REFERENCES rol(id)
-);
+    );
 
-CREATE TABLE tipo_documento (
-    id                BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    nombre            VARCHAR(100) NOT NULL UNIQUE  COMMENT 'Nombre de la plantilla (ej: Recibo de pago, Contrato)',
-    descripcion       TEXT,
-    estado            BOOLEAN      NOT NULL DEFAULT TRUE  COMMENT 'TRUE = disponible para crear documentos',
-    flujo_configurado BOOLEAN      NOT NULL DEFAULT FALSE COMMENT 'TRUE = tiene al menos una etapa definida'
-);
+-- ── Tipos documentales ──────────────────────────────────────
 
--- Flujo de aprobación asociado a una plantilla
--- Una plantilla tiene exactamente un flujo
-CREATE TABLE flujo (
-    id                BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    tipo_documento_id BIGINT          NOT NULL UNIQUE  COMMENT 'Cada plantilla tiene un solo flujo',
-    nombre            VARCHAR(100) NOT NULL          COMMENT 'Nombre descriptivo del flujo',
+CREATE TABLE IF NOT EXISTS tipo_documento (
+                                              id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                              nombre            VARCHAR(100) NOT NULL UNIQUE,
+    descripcion       VARCHAR(255),
+    estado            BOOLEAN DEFAULT TRUE,
+    flujo_configurado BOOLEAN DEFAULT FALSE
+    );
+
+-- ── Flujos y etapas ─────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS flujo (
+                                     id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                     tipo_documento_id BIGINT NULL,
+                                     nombre            VARCHAR(150) NOT NULL,
     CONSTRAINT fk_flujo_tipo FOREIGN KEY (tipo_documento_id) REFERENCES tipo_documento(id)
-);
+    );
 
--- Etapas del flujo — cada fila es un paso que debe cumplirse en orden
--- El campo usuario_id es opcional: si viene, solo ese usuario puede resolver la tarea;
--- si es NULL, cualquier usuario con el rol indicado puede resolverla
-CREATE TABLE etapa_flujo (
-    id           BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    flujo_id     BIGINT          NOT NULL,
-    orden        INT          NOT NULL  COMMENT 'Secuencia de ejecución (1, 2, 3...)',
-    nombre       VARCHAR(100) NOT NULL  COMMENT 'Nombre de la etapa (ej: Revisión, Firma, Aprobación final)',
-    rol_id       BIGINT          NOT NULL  COMMENT 'Rol responsable de esta etapa',
-    usuario_id   BIGINT          NULL      COMMENT 'Usuario específico (NULL = cualquiera con el rol)',
-    CONSTRAINT fk_etapa_flujo    FOREIGN KEY (flujo_id)   REFERENCES flujo(id),
-    CONSTRAINT fk_etapa_rol      FOREIGN KEY (rol_id)     REFERENCES rol(id),
-    CONSTRAINT fk_etapa_usuario  FOREIGN KEY (usuario_id) REFERENCES usuario(id),
-    UNIQUE KEY uk_etapa_orden (flujo_id, orden)            COMMENT 'No puede haber dos etapas con el mismo orden en el mismo flujo'
-);
+CREATE TABLE IF NOT EXISTS etapa_flujo (
+                                           id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                           flujo_id   BIGINT NOT NULL,
+                                           orden      INT    NOT NULL,
+                                           nombre     VARCHAR(100) NOT NULL,
+    rol_id     BIGINT,
+    usuario_id BIGINT,
+    CONSTRAINT fk_etapa_flujo   FOREIGN KEY (flujo_id)   REFERENCES flujo(id),
+    CONSTRAINT fk_etapa_rol     FOREIGN KEY (rol_id)     REFERENCES rol(id),
+    CONSTRAINT fk_etapa_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+    UNIQUE KEY uk_etapa_orden (flujo_id, orden)
+    );
 
-CREATE TABLE documento (
-    id                  BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    nombre              VARCHAR(150) NOT NULL,
-    ruta_archivo        VARCHAR(500) NULL              COMMENT 'Ruta física del archivo subido',
-    estado_id           BIGINT          NOT NULL,
-    fecha_creacion      DATETIME     NOT NULL,
-    fecha_actualizacion DATETIME,
-    eliminado           BOOLEAN      NOT NULL DEFAULT FALSE COMMENT 'TRUE = papelera',
-    usuario_id          BIGINT          NOT NULL,
+-- ── Documentos ──────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS documento (
+                                         id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                         nombre              VARCHAR(255) NOT NULL,
+    ruta_archivo        VARCHAR(500),
+    estado_id           BIGINT,
+    eliminado           BOOLEAN DEFAULT FALSE,
+    usuario_id          BIGINT,
     tipo_documento_id   BIGINT,
-    CONSTRAINT fk_documento_estado  FOREIGN KEY (estado_id)         REFERENCES estado_documento(id),
-    CONSTRAINT fk_documento_usuario FOREIGN KEY (usuario_id)        REFERENCES usuario(id),
-    CONSTRAINT fk_documento_tipo    FOREIGN KEY (tipo_documento_id) REFERENCES tipo_documento(id)
-);
+    flujo_id            BIGINT NULL,
+    fecha_creacion      DATETIME,
+    fecha_actualizacion DATETIME,
+    CONSTRAINT fk_doc_estado    FOREIGN KEY (estado_id)         REFERENCES estado_documento(id),
+    CONSTRAINT fk_doc_usuario   FOREIGN KEY (usuario_id)        REFERENCES usuario(id),
+    CONSTRAINT fk_doc_tipo      FOREIGN KEY (tipo_documento_id) REFERENCES tipo_documento(id),
+    CONSTRAINT fk_doc_flujo     FOREIGN KEY (flujo_id)          REFERENCES flujo(id)
+    );
 
--- Tarea: ahora incluye etapa_flujo_id para saber en qué paso del flujo está
--- y poder avanzar automáticamente al siguiente cuando se aprueba
-CREATE TABLE tarea (
-    id                  BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    documento_id        BIGINT          NOT NULL,
-    usuario_asignado_id BIGINT          NOT NULL,
-    etapa_flujo_id      BIGINT          NOT NULL  COMMENT 'Etapa del flujo a la que corresponde esta tarea',
-    estado_id           BIGINT          NOT NULL,
-    observaciones       VARCHAR(500),
-    fecha_asignacion    DATETIME     NOT NULL,
-    fecha_resolucion    DATETIME               COMMENT 'NULL mientras esté PENDIENTE',
-    CONSTRAINT fk_tarea_documento FOREIGN KEY (documento_id)        REFERENCES documento(id),
-    CONSTRAINT fk_tarea_usuario   FOREIGN KEY (usuario_asignado_id) REFERENCES usuario(id),
-    CONSTRAINT fk_tarea_etapa     FOREIGN KEY (etapa_flujo_id)      REFERENCES etapa_flujo(id),
-    CONSTRAINT fk_tarea_estado    FOREIGN KEY (estado_id)           REFERENCES estado_tarea(id)
-);
+-- ── Historial de documentos ─────────────────────────────────
 
-CREATE TABLE historial_documento (
-    id           BIGINT   AUTO_INCREMENT PRIMARY KEY,
-    estado_id    BIGINT      NOT NULL    COMMENT 'Estado en que quedó el documento',
-    accion_id    BIGINT      NOT NULL    COMMENT 'Tipo de acción realizada',
-    descripcion  VARCHAR(300) NULL   COMMENT 'Detalle adicional (ej: etapa completada, quién aprobó)',
-    fecha_cambio DATETIME NOT NULL,
-    documento_id BIGINT      NOT NULL,
-    usuario_id   BIGINT      NOT NULL,
-    CONSTRAINT fk_historial_estado    FOREIGN KEY (estado_id)    REFERENCES estado_documento(id),
-    CONSTRAINT fk_historial_accion    FOREIGN KEY (accion_id)    REFERENCES tipo_accion(id),
-    CONSTRAINT fk_historial_documento FOREIGN KEY (documento_id) REFERENCES documento(id) ON DELETE CASCADE,
-    CONSTRAINT fk_historial_usuario   FOREIGN KEY (usuario_id)   REFERENCES usuario(id)
-);
+CREATE TABLE IF NOT EXISTS historial_documento (
+                                                   id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                   documento_id  BIGINT,
+                                                   usuario_id    BIGINT,
+                                                   estado_id     BIGINT,
+                                                   accion_id     BIGINT,
+                                                   descripcion   VARCHAR(255),
+    observaciones TEXT,
+    fecha_cambio  DATETIME,
+    CONSTRAINT fk_hist_doc     FOREIGN KEY (documento_id) REFERENCES documento(id),
+    CONSTRAINT fk_hist_usuario FOREIGN KEY (usuario_id)   REFERENCES usuario(id),
+    CONSTRAINT fk_hist_estado  FOREIGN KEY (estado_id)    REFERENCES estado_documento(id),
+    CONSTRAINT fk_hist_accion  FOREIGN KEY (accion_id)    REFERENCES tipo_accion(id)
+    );
+
+-- ── Tareas ──────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS tarea (
+                                     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                     documento_id        BIGINT,
+                                     etapa_flujo_id      BIGINT,
+                                     usuario_asignado_id BIGINT,
+                                     estado_id           BIGINT,
+                                     observaciones       TEXT,
+                                     fecha_asignacion    DATETIME,
+                                     fecha_resolucion    DATETIME,
+                                     CONSTRAINT fk_tarea_doc     FOREIGN KEY (documento_id)        REFERENCES documento(id),
+    CONSTRAINT fk_tarea_etapa   FOREIGN KEY (etapa_flujo_id)      REFERENCES etapa_flujo(id),
+    CONSTRAINT fk_tarea_usuario FOREIGN KEY (usuario_asignado_id) REFERENCES usuario(id),
+    CONSTRAINT fk_tarea_estado  FOREIGN KEY (estado_id)           REFERENCES estado_tarea(id)
+    );
 
 -- ============================================================
 -- DATOS INICIALES
 -- ============================================================
 
--- Roles — agregar los que necesiten con INSERT, sin tocar el código
-INSERT INTO rol (nombre) VALUES
-    ('ADMIN'),       -- Administra usuarios y plantillas
-    ('CREADOR'),     -- Crea y sube documentos
-    ('REVISOR'),     -- Revisa documentos en primera instancia
-    ('APROBADOR'),   -- Aprueba formalmente el documento
-    ('FIRMANTE');    -- Firma y finaliza el documento
+-- Roles
+INSERT INTO rol (nombre, descripcion) VALUES
+                                          ('ADMIN',     'Administrador del sistema'),
+                                          ('CREADOR',   'Crea y gestiona documentos'),
+                                          ('REVISOR',   'Revisa documentos en primera etapa'),
+                                          ('APROBADOR', 'Aprueba documentos en segunda etapa'),
+                                          ('FIRMANTE',  'Firma y cierra documentos en etapa final');
 
--- Estados del documento
-INSERT INTO estado_documento (nombre, descripcion) VALUES
-    ('CREADO',      'Documento recién creado o devuelto para correcciones'),
-    ('EN_REVISION', 'Documento en alguna etapa del flujo de aprobación'),
-    ('APROBADO',    'Documento aprobado en todas las etapas'),
-    ('RECHAZADO',   'Documento rechazado — el flujo se detuvo');
+-- Estados de documento
+INSERT INTO estado_documento (nombre) VALUES
+                                          ('CREADO'),
+                                          ('EN_REVISION'),
+                                          ('APROBADO'),
+                                          ('RECHAZADO');
 
--- Estados de la tarea
-INSERT INTO estado_tarea (nombre, descripcion) VALUES
-    ('PENDIENTE',  'Tarea asignada, esperando acción del responsable'),
-    ('APROBADO',   'El responsable aprobó — avanza a la siguiente etapa'),
-    ('RECHAZADO',  'El responsable rechazó — el flujo se detiene'),
-    ('CORRECCION', 'Se solicitaron correcciones — vuelve al creador');
+-- Estados de tarea
+INSERT INTO estado_tarea (nombre) VALUES
+                                      ('PENDIENTE'),
+                                      ('APROBADO'),
+                                      ('RECHAZADO'),
+                                      ('CORRECCION');
 
--- Tipos de acción para el historial
+-- Tipos de acción
 INSERT INTO tipo_accion (nombre, descripcion) VALUES
-    ('CREACION',       'Documento creado en el sistema'),
-    ('ACTUALIZACION',  'Metadatos del documento modificados'),
-    ('CAMBIO_ESTADO',  'Estado del documento modificado'),
-    ('ELIMINACION',    'Documento enviado a papelera o eliminado permanentemente'),
-    ('RESTAURACION',   'Documento recuperado desde la papelera'),
-    ('DESCARGA',       'Archivo del documento descargado'),
-    ('ETAPA_APROBADA', 'Una etapa del flujo fue aprobada'),
-    ('ETAPA_RECHAZADA','Una etapa del flujo fue rechazada'),
-    ('FLUJO_COMPLETO', 'Todas las etapas del flujo fueron completadas');
+                                                  ('CREACION',              'Documento creado en el sistema'),
+                                                  ('ACTUALIZACION',         'Metadatos del documento modificados'),
+                                                  ('CAMBIO_ESTADO',         'Estado del documento modificado'),
+                                                  ('ELIMINACION',           'Documento enviado a papelera o eliminado permanentemente'),
+                                                  ('RESTAURACION',          'Documento recuperado desde la papelera'),
+                                                  ('DESCARGA',              'Archivo del documento descargado'),
+                                                  ('ETAPA_APROBADA',        'Una etapa del flujo fue aprobada'),
+                                                  ('ETAPA_RECHAZADA',       'Una etapa del flujo fue rechazada'),
+                                                  ('FLUJO_COMPLETO',        'Todas las etapas del flujo fueron completadas'),
+                                                  ('CORRECCION_SOLICITADA', 'Se solicitó corrección del documento'),
+                                                  ('REENVIO_FLUJO',         'Documento reenviado al flujo tras corrección');
 
--- Plantillas de documentos de ejemplo
+-- Tipos documentales
 INSERT INTO tipo_documento (nombre, descripcion, estado, flujo_configurado) VALUES
-    ('Recibo de Pago',     'Recibos y comprobantes de pago',              TRUE, FALSE),
-    ('Contrato',           'Contratos comerciales e institucionales',      TRUE, FALSE),
-    ('Informe de Gestión', 'Informes internos de gestión administrativa',  TRUE, FALSE),
-    ('Solicitud Interna',  'Solicitudes formales entre áreas',             TRUE, FALSE),
-    ('Circular',           'Circulares y comunicados institucionales',     TRUE, FALSE);
+                                                                                ('Recibo de Pago',     'Recibos y comprobantes de pago',             TRUE, TRUE),
+                                                                                ('Contrato',           'Contratos comerciales e institucionales',     TRUE, TRUE),
+                                                                                ('Informe de Gestión', 'Informes internos de gestión administrativa', TRUE, TRUE),
+                                                                                ('Solicitud Interna',  'Solicitudes formales entre áreas',            TRUE, TRUE),
+                                                                                ('Circular',           'Circulares y comunicados institucionales',    TRUE, TRUE);
 
--- ============================================================
--- USUARIO ADMINISTRADOR INICIAL
--- Genera el hash en https://bcrypt-generator.com (rounds=10)
--- y reemplaza REEMPLAZAR_CON_HASH_BCRYPT antes de ejecutar
--- ============================================================
-INSERT INTO usuario (nombre, email, contrasena, estado, telefono, cargo, rol_id)
-VALUES (
-    'Administrador',
-    'admin@omnifiles.com',
-    '$2a$10$KaXsDFatNiXVrp83ZW.mX.fIs0ser2tMo9O7cC8.fgjpQc7bASAUu',
-    TRUE,
-    NULL,
-    'Administrador del sistema',
-    1  -- rol ADMIN
-);
+-- Usuarios (contraseña: 1234 hasheada con BCrypt)
+INSERT INTO usuario (nombre, email, contrasena, estado, telefono, cargo, rol_id) VALUES
+                                                                                     ('Administrador', 'admin@omnifiles.com',       '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVgUs.7Rzy', TRUE, NULL,    'Administrador del sistema', 1),
+                                                                                     ('Juan',          'juan@omnifiles.com',         '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVgUs.7Rzy', TRUE, '12345', 'Analista',                  4),
+                                                                                     ('Pablo',         'pablo@omnifiles.com',        '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVgUs.7Rzy', TRUE, '4321',  'Revision',                  3),
+                                                                                     ('Alejandro',     'alejo@omnifiles.com',        '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVgUs.7Rzy', TRUE, '321',   'Firmante de docs',          5),
+                                                                                     ('yeliel',        'lopezmarinyeliel@gmail.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVgUs.7Rzy', TRUE, '123',   'analista',                  1);
 
--- ============================================================
--- EJEMPLO DE FLUJO COMPLETO
--- Flujo de 3 etapas para "Contrato":
--- 1. Revisión (REVISOR) → 2. Aprobación (APROBADOR) → 3. Firma (FIRMANTE)
--- Descomenta y ajusta los IDs de usuario según tu BD
--- ============================================================
-/*
-INSERT INTO flujo (tipo_documento_id, nombre) VALUES (2, 'Flujo de aprobación de contratos');
+-- Flujos (uno por cada tipo documental)
+INSERT INTO flujo (tipo_documento_id, nombre) VALUES
+                                                  (1, 'Flujo de aprobación de recibos'),
+                                                  (2, 'Flujo de aprobación de contratos'),
+                                                  (3, 'Flujo de aprobación de informes'),
+                                                  (4, 'Flujo de aprobación de solicitudes'),
+                                                  (5, 'Flujo de aprobación de circulares');
 
+-- Etapas de flujo — Flujo 1: Recibo de Pago
 INSERT INTO etapa_flujo (flujo_id, orden, nombre, rol_id, usuario_id) VALUES
-    (1, 1, 'Revisión inicial',   3, NULL),  -- cualquier REVISOR
-    (1, 2, 'Aprobación formal',  4, NULL),  -- cualquier APROBADOR
-    (1, 3, 'Firma y cierre',     5, NULL);  -- cualquier FIRMANTE
+                                                                          (1, 1, 'Revisión inicial',  3, 3),
+                                                                          (1, 2, 'Aprobación formal', 4, 2),
+                                                                          (1, 3, 'Firma y cierre',    5, 4);
 
-UPDATE tipo_documento SET flujo_configurado = TRUE WHERE id = 2;
-*/
+-- Etapas de flujo — Flujo 2: Contrato
+INSERT INTO etapa_flujo (flujo_id, orden, nombre, rol_id, usuario_id) VALUES
+                                                                          (2, 1, 'Revisión inicial',  3, 3),
+                                                                          (2, 2, 'Aprobación formal', 4, 2),
+                                                                          (2, 3, 'Firma y cierre',    5, 4);
 
+-- Etapas de flujo — Flujo 3: Informe de Gestión
+INSERT INTO etapa_flujo (flujo_id, orden, nombre, rol_id, usuario_id) VALUES
+                                                                          (3, 1, 'Revisión inicial',  3, 3),
+                                                                          (3, 2, 'Aprobación formal', 4, 2),
+                                                                          (3, 3, 'Firma y cierre',    5, 4);
+
+-- Etapas de flujo — Flujo 4: Solicitud Interna
+INSERT INTO etapa_flujo (flujo_id, orden, nombre, rol_id, usuario_id) VALUES
+                                                                          (4, 1, 'Revisión inicial',  3, 3),
+                                                                          (4, 2, 'Aprobación formal', 4, 2),
+                                                                          (4, 3, 'Firma y cierre',    5, 4);
+
+-- Etapas de flujo — Flujo 5: Circular
+INSERT INTO etapa_flujo (flujo_id, orden, nombre, rol_id, usuario_id) VALUES
+                                                                          (5, 1, 'Revisión inicial',  3, 3),
+                                                                          (5, 2, 'Aprobación formal', 4, 2),
+                                                                          (5, 3, 'Firma y cierre',    5, 4);
