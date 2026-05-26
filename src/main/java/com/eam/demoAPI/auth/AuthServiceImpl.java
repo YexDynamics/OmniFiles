@@ -2,6 +2,7 @@ package com.eam.demoAPI.auth;
 
 import com.eam.demoAPI.auth.dto.AuthRequest;
 import com.eam.demoAPI.auth.dto.AuthResponse;
+import com.eam.demoAPI.persistence.repository.UsuarioRepository;
 import com.eam.demoAPI.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +21,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     public AuthResponse login(AuthRequest authRequest) {
@@ -38,7 +40,13 @@ public class AuthServiceImpl implements AuthService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
+        Long usuarioId = usuarioRepository
+                .findByEmail(userDetails.getUsername())
+                .map(u -> u.getId())
+                .orElse(0L);
+
         return new AuthResponse(
+                usuarioId,
                 token,
                 "Bearer",
                 jwtService.getJwtExpirationSeconds(),

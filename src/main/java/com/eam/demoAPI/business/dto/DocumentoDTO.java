@@ -20,7 +20,7 @@ public class DocumentoDTO {
     @Schema(description = "Ruta del archivo en el servidor", accessMode = Schema.AccessMode.READ_ONLY)
     private String rutaArchivo;
 
-    @Schema(description = "Nombre del estado actual (CREADO, EN_REVISION, APROBADO, RECHAZADO)", example = "CREADO")
+    @Schema(description = "Nombre del estado actual", example = "CREADO")
     private String estado;
 
     @Schema(description = "ID del usuario responsable", example = "1", required = true)
@@ -28,6 +28,9 @@ public class DocumentoDTO {
 
     @Schema(description = "ID del tipo documental", example = "2")
     private Long tipoDocumentoId;
+
+    @Schema(description = "ID del flujo de aprobación seleccionado", example = "1")
+    private Long flujoId;
 
     @Schema(description = "Indica si el documento está en papelera", example = "false")
     private Boolean eliminado = false;

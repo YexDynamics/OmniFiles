@@ -17,7 +17,6 @@ public class Documento {
     private Long id;
 
     private String nombre;
-
     private String rutaArchivo;
 
     @ManyToOne
@@ -26,7 +25,6 @@ public class Documento {
 
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
-
     private Boolean eliminado = false;
 
     @ManyToOne
@@ -36,4 +34,8 @@ public class Documento {
     @ManyToOne
     @JoinColumn(name = "tipo_documento_id")
     private TipoDocumento tipoDocumento;
+
+    @ManyToOne
+    @JoinColumn(name = "flujo_id")
+    private Flujo flujo;
 }
