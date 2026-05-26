@@ -2,11 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.5'
 	id 'io.spring.dependency-management' version '1.1.7'
-	// Genera pruebas de cobertura
 	id 'jacoco'
-	// plugin sonarQube (Comentado por si lo necesitas luego)
-	// id "org.sonarqube" version "4.4.1.3373"
-	// plugin allure reports
 	id "io.qameta.allure" version "3.0.2"
 }
 
@@ -35,9 +31,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-	// Necesario para @Valid, @NotBlank, @Email en los DTOs
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// --- DRIVER MARIADB ---
+	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:3.4.1'
 
 	// --- LOMBOK ---
 	compileOnly 'org.projectlombok:lombok'
@@ -45,7 +42,6 @@ dependencies {
 
 	// --- TESTING ---
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	// Nota: Spring Boot 3.4.x ya trae Mockito por defecto, no hace falta declararlo aparte
 	testImplementation 'io.qameta.allure:allure-junit5:2.34.0'
 
 	// --- DOCUMENTACIÓN (Swagger/OpenAPI) ---
@@ -54,7 +50,6 @@ dependencies {
 	// --- MAPSTRUCT ---
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-	// Bridge para que Lombok y MapStruct no peleen
 	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 
 	// --- SEGURIDAD JWT ---
@@ -65,11 +60,9 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
-	// Descomenta esto cuando quieras que el reporte se genere automático al testear
 	finalizedBy jacocoTestReport, allureReport
 }
 
-// --- CONFIGURACIÓN JACOCO ---
 jacoco {
 	toolVersion = "0.8.12"
 }
@@ -87,14 +80,12 @@ jacocoTestCoverageVerification {
 	violationRules {
 		rule {
 			limit {
-				// Exigencia del 30% de cobertura
 				minimum = 0.80
 			}
 		}
 	}
 }
 
-// --- CONFIGURACIÓN ALLURE ---
 allure {
 	version = "2.34.0"
 	autoconfigure = true
